@@ -618,7 +618,8 @@
           ownerTab:"orders", newItemName:"", newItemLocal:"", newItemPrice:"", newItemOccasion:"",
           customerLoggedIn:false, showCustLogin:false, custLoginName:"", custLoginPhone:"", custLoginError:"",
           lastSeenOrderTs: null, lastSeenCustomerActionTs: null, bestSellerPeriod: "today", reviewDraftRating: 0, reviewDraftComment: "", pushEnabledHere: false,
-          editingOrderId: null, cancelling: null }
+          editingOrderId: null, cancelling: null,
+          custVoiceAlert: true, voiceLastOrderId: null, voiceLastStatus: null }
   };
 
   function load(){
@@ -1042,7 +1043,7 @@
       focusInfo = { id: active.id, start: active.selectionStart, end: active.selectionEnd };
     }
 
-    checkNewOrdersAndAnnounce();
+    checkNewOrdersAndAnnounce(); checkCustomerOrderAndAnnounce();
     renderTopTabs();
     var showRibbon = state.ui.role === "owner" || state.ui.customerStep === "shop";
     var ribbon = document.getElementById("ribbon");
@@ -1299,6 +1300,11 @@
     html += '<div class="ticket-body">';
     html += '<div class="top-row"><div><h3>' + esc(state.shop.name) + '</h3><div class="hint" style="margin-top:2px">' + (order.fulfilment==="DELIVERY"?"🛵 Home delivery":"🚶 Pickup") + '</div></div>';
     html += '<span class="status-pill st-' + order.status + '">' + order.status + '</span></div>';
+
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin:8px 0">' +
+      '<span class="hint">' + (state.ui.custVoiceAlert!==false ? '🔊 Voice alerts active' : '🔇 Voice alerts inactive') + '</span>' +
+      '<label class="switch" title="Voice alerts"><input type="checkbox" id="tg-cust-voice" ' + (state.ui.custVoiceAlert!==false?'checked':'') + '><span class="track"></span></label>' +
+      '</div>';
 
     if(!terminal){
       var stageLabels = ["Placed","Accepted","Preparing","Ready","Done"];
@@ -2074,6 +2080,12 @@
       if(t.checked) speak("Voice alerts are on.");
       return;
     }
+    if(t.id === "tg-cust-voice"){
+      state.ui.custVoiceAlert = t.checked; persist();
+      toast(t.checked ? "Voice alerts on" : "Voice alerts off");
+      if(t.checked) speak("Voice alerts are on.");
+      return;
+    }
     if(t.id === "sel-special"){ updateShop({ todaySpecialId: t.value }); return; }
     if(t.id === "in-open-time-1"){ updateShop({ openTime1: t.value }); return; }
     if(t.id === "in-close-time-1"){ updateShop({ closeTime1: t.value }); return; }
@@ -2330,6 +2342,23 @@
     state.ui.lastSeenCustomerActionTs = nowMs();
     persist();
   }
+  // Customer-side voice alert: reads out the same text as the WhatsApp status message
+  // (statusUpdateText), so it's identical wording and already carries the
+  // delivery-vs-pickup and paid-vs-due differences. First sighting of an order just sets
+  // the baseline so opening the ticket never announces its current status out of nowhere;
+  // only real transitions speak. PENDING/CANCELLED are skipped, same as the "Notify" button.
+  function checkCustomerOrderAndAnnounce(){
+    if(state.ui.role === "owner" || !state.ui.custVoiceAlert || !state.ui.activeOrderId) return;
+    var o = state.orders.find(function(x){ return x.id === state.ui.activeOrderId; });
+    if(!o) return;
+    if(state.ui.voiceLastOrderId !== o.id){
+      state.ui.voiceLastOrderId = o.id; state.ui.voiceLastStatus = o.status; persist(); return;
+    }
+    if(state.ui.voiceLastStatus !== o.status){
+      state.ui.voiceLastStatus = o.status; persist();
+      if(["ACCEPTED","PREPARING","READY","COMPLETED","REJECTED"].indexOf(o.status) !== -1) speak(statusUpdateText(o));
+    }
+  }
   // Merge shared shop/order data written by another tab of the same browser, without touching
   // this tab's own session (role, unlock state, cart, in-progress form fields).
   function mergeIncomingSharedState(incoming){
@@ -2356,7 +2385,7 @@
   // Catch up the moment the tab is looked at again instead of waiting for the next
   // unrelated render.
   document.addEventListener("visibilitychange", function(){
-    if(document.visibilityState === "visible"){ checkNewOrdersAndAnnounce(); render(); }
+    if(document.visibilityState === "visible"){ checkNewOrdersAndAnnounce(); checkCustomerOrderAndAnnounce(); render(); }
   });
 
   /* ---------- Cloud connect: subscribe to shared data, seed it if this is a brand-new DB ---------- */
