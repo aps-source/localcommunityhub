@@ -2676,6 +2676,22 @@
      one hub already live keeps every order and setting it already has. A database that
      already has a hubs tree is left alone. The old top-level keys are never deleted by this
      — they're just no longer read after this — so nothing is lost if this runs twice. */
+  // Rules grant ".write" at hubs/$hubId/shop, /menu, /counter, /reviews, /orders/$orderId —
+  // never at hubs/$hubId itself or at "hubs". A single update() key of "hubs/ssb" holding a
+  // combined {shop,menu,...} object is a write AT hubs/ssb, which has no rule of its own and
+  // is denied, even though its children are individually writable. Flatten every hub's fields
+  // into their own leaf paths (and every order into its own hubs/{id}/orders/{orderId}) so
+  // each key in the update object lands exactly on a path the rules already permit.
+  function hubFieldUpdates(prefix, hub){
+    var out = {};
+    out[prefix + "/shop"] = hub.shop;
+    out[prefix + "/menu"] = hub.menu || [];
+    out[prefix + "/counter"] = hub.counter || { date: todayStr(), next: 1 };
+    out[prefix + "/reviews"] = hub.reviews || {};
+    var orders = hub.orders || {};
+    Object.keys(orders).forEach(function(oid){ out[prefix + "/orders/" + oid] = orders[oid]; });
+    return out;
+  }
   function migrateToHubsTreeIfNeeded(){
     // Reading the database root (ref().once("value")) needs a ".read" rule at "/" itself —
     // this project's rules only grant read on named children, so a root read is always
@@ -2695,17 +2711,15 @@
         var update = {};
         if(shop){
           var slug = (shop.tokenPrefix || "hub").toLowerCase().replace(/[^a-z0-9]/g,"") || "hub";
-          update["hubs/" + slug] = {
-            shop: shop,
-            menu: menu || [],
-            counter: counter || { date: todayStr(), next: 1 },
-            orders: orders || {},
-            reviews: reviews || {}
-          };
+          Object.assign(update, hubFieldUpdates("hubs/" + slug, {
+            shop: shop, menu: menu, counter: counter, orders: orders, reviews: reviews
+          }));
           if(!hub) update.hub = DEFAULT_STATE.hub;
         } else {
           update.hub = DEFAULT_STATE.hub;
-          update.hubs = DEFAULT_STATE.hubs;
+          Object.keys(DEFAULT_STATE.hubs).forEach(function(hid){
+            Object.assign(update, hubFieldUpdates("hubs/" + hid, DEFAULT_STATE.hubs[hid]));
+          });
         }
         return cloud.db.ref().update(update);
       });
