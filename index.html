@@ -33,6 +33,10 @@
     --red-soft:#F5DEDA;
     --teal:#2F4A43;
     --teal-soft:#DCE7E3;
+    --blue:#2E5FA3;
+    --blue-soft:#DCE6F5;
+    --purple:#7A4CA0;
+    --purple-soft:#EBDFF2;
     --shadow: 0 1px 2px rgba(42,29,20,.05), 0 4px 10px -6px rgba(42,29,20,.12), 0 14px 32px -16px rgba(42,29,20,.20);
     --shadow-lift: 0 2px 4px rgba(42,29,20,.08), 0 18px 36px -14px rgba(42,29,20,.30);
   }
@@ -53,6 +57,10 @@
       --red-soft:#3B231F;
       --teal:#6FA69A;
       --teal-soft:#1E2E2A;
+      --blue:#6C9BDB;
+      --blue-soft:#1E2A3B;
+      --purple:#B693D9;
+      --purple-soft:#2E2338;
       --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 14px -8px rgba(0,0,0,.45), 0 16px 32px -14px rgba(0,0,0,.6);
       --shadow-lift: 0 2px 5px rgba(0,0,0,.35), 0 20px 40px -16px rgba(0,0,0,.7);
     }
@@ -73,6 +81,10 @@
     --red-soft:#3B231F;
     --teal:#6FA69A;
     --teal-soft:#1E2E2A;
+    --blue:#6C9BDB;
+    --blue-soft:#1E2A3B;
+    --purple:#B693D9;
+    --purple-soft:#2E2338;
     --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 14px -8px rgba(0,0,0,.45), 0 16px 32px -14px rgba(0,0,0,.6);
     --shadow-lift: 0 2px 5px rgba(0,0,0,.35), 0 20px 40px -16px rgba(0,0,0,.7);
   }
@@ -477,11 +489,14 @@
   .crumb:hover{ color:var(--ink); }
   .hub-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(250px,1fr)); gap:16px; margin-top:14px; }
   .hub-tile{
-    text-align:left; background:var(--surface); border:1px solid var(--line); border-radius:18px; padding:20px;
+    text-align:left; background:var(--surface); border:1px solid var(--line); border-top:4px solid var(--line); border-radius:18px; padding:20px;
     box-shadow:var(--shadow); cursor:pointer; font-family:inherit; color:var(--ink); display:flex; flex-direction:column; gap:9px;
     transition:transform .18s ease, border-color .18s ease, box-shadow .18s ease;
   }
   .hub-tile:hover{ border-color:var(--gold); transform:translateY(-3px); box-shadow:var(--shadow-lift); }
+  .hub-tile-open{ border-top-color:var(--green); }
+  .hub-tile-closed{ border-top-color:var(--red); }
+  .hub-tile-holiday{ border-top-color:var(--gold); }
   .hub-tile h3{ font-size:18px; letter-spacing:-.01em; }
   .hub-tile .local{ margin:0; color:var(--ink-soft); font-size:12px; }
   .hub-tile-meta{ font-size:12.5px; color:var(--ink-soft); }
@@ -507,6 +522,10 @@
   .hub-hero p{ margin:5px 0 0; opacity:.9; font-size:13px; }
   .hub-kpis{ display:grid; grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:10px; margin-bottom:18px; }
   .hub-kpi{ background:var(--surface); border:1px solid var(--line); border-left:4px solid var(--gold); border-radius:12px; padding:12px 14px; box-shadow:var(--shadow); text-align:left; font-family:inherit; width:100%; }
+  .hub-kpi:nth-child(1){ border-left-color:var(--blue); }
+  .hub-kpi:nth-child(2){ border-left-color:var(--green); }
+  .hub-kpi:nth-child(3){ border-left-color:var(--teal); }
+  .hub-kpi:nth-child(4){ border-left-color:var(--gold); }
   .hub-kpi .k{ font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-soft); font-weight:800; display:flex; justify-content:space-between; align-items:center; }
   .hub-kpi .v{ font-size:18px; font-weight:800; color:var(--ink); margin-top:3px; line-height:1.2; }
   .hub-kpi.filterable{ cursor:pointer; transition:border-color .15s ease, background .15s ease; }
@@ -519,6 +538,9 @@
   .fulfil-chip{ font-family:inherit; cursor:pointer; font-size:12px; font-weight:700; padding:5px 10px; border-radius:999px; border:1px solid var(--line); background:var(--surface-2); color:var(--ink-soft); }
   .fulfil-chip:hover{ border-color:var(--gold); color:var(--ink); }
   .fulfil-chip[aria-pressed="true"]{ background:var(--gold); border-color:var(--gold); color:#fff; }
+  .fulfil-chip[data-fulfil-filter="pickup"][aria-pressed="true"]{ background:var(--teal); border-color:var(--teal); }
+  .fulfil-chip[data-fulfil-filter="delivery"][aria-pressed="true"]{ background:var(--blue); border-color:var(--blue); }
+  .fulfil-chip[data-fulfil-filter="both"][aria-pressed="true"]{ background:var(--purple); border-color:var(--purple); }
 
   /* ============ Sponsored / ad placeholder slots ============ */
   .ad-slot{
@@ -548,7 +570,7 @@
     <div class="brand">
       <div class="brand-mark">🫓</div>
       <div>
-        <h1>DSK Food Hub</h1>
+        <h1>DSK Community Hub</h1>
         <p>order &middot; token &middot; pay at hub</p>
       </div>
     </div>
@@ -654,10 +676,11 @@
           activeOrderId:null, activeHubId:null, ownerHubId:null, rejecting:null, resetArm:false,
           ownerTab:"orders", newItemName:"", newItemLocal:"", newItemPrice:"", newItemOccasion:"",
           customerLoggedIn:false, showCustLogin:false, custLoginName:"", custLoginPhone:"", custLoginError:"",
+          showLoginChoice:false,
           lastSeenOrderTsByHub: {}, lastSeenCustomerActionTsByHub: {}, bestSellerPeriod: "today", reviewDraftRating: 0, reviewDraftComment: "", pushEnabledHere: false,
           editingOrderId: null, cancelling: null,
           custVoiceAlert: true, voiceLastOrderId: null, voiceLastStatus: null,
-          myOrderIds: [], hubFilterOpenOnly: false, hubFulfilmentFilter: "" }
+          myOrderIds: [], hubFilterOpenOnly: false, hubFulfilmentFilter: "", hubRatingFilter: 0 }
   };
 
   // Which hub a given customer/owner action applies to — the owner console only ever
@@ -718,6 +741,7 @@
     if(!state.ui.ownerUnlocked) state.ui.role = "customer";
     state.ui.showPin = false; state.ui.pinInput = ""; state.ui.pinError = "";
     state.ui.showCustLogin = false; state.ui.custLoginError = "";
+    state.ui.showLoginChoice = false;
     // checkNewOrdersAndAnnounce() lazily starts each hub's own "new order" clock the
     // first time this device checks it, so pre-existing orders never get announced.
   })();
@@ -1117,7 +1141,7 @@
     var ribbon = document.getElementById("ribbon");
     if(showRibbon){ ribbon.style.display=""; renderRibbon(); } else { ribbon.style.display="none"; }
     var app = document.getElementById("app");
-    app.innerHTML = (state.ui.role === "owner" ? ownerView() : customerView()) + renderPinPanel() + renderCustLoginPanel();
+    app.innerHTML = (state.ui.role === "owner" ? ownerView() : customerView()) + renderPinPanel() + renderCustLoginPanel() + renderLoginChoicePanel();
     bindEvents();
     renderUpiQr();
 
@@ -1145,8 +1169,22 @@
     if(state.ui.customerLoggedIn && state.ui.name){
       slot.innerHTML = '<div class="cust-id-box"><span>👋 ' + esc(state.ui.name.split(" ")[0]) + '</span><button class="cust-id-btn" id="btn-cust-logout">Logout</button></div>';
     } else {
-      slot.innerHTML = '<button class="cust-id-btn primary" id="btn-cust-login">👤 Login</button>';
+      slot.innerHTML = '<button class="cust-id-btn primary" id="btn-open-login-choice">👤 Login</button>';
     }
+  }
+
+  function renderLoginChoicePanel(){
+    if(!state.ui.showLoginChoice) return "";
+    return '<div class="modal-backdrop" id="login-choice-backdrop">' +
+      '<div class="modal-card">' +
+        '<h3 style="text-align:center">Login as</h3>' +
+        '<div style="display:flex;flex-direction:column;gap:10px;margin-top:14px">' +
+          '<button class="btn btn-primary" data-full id="btn-choice-customer">👤 Customer</button>' +
+          '<button class="btn btn-owner" data-full id="btn-choice-owner">🧑‍🍳 Hub Owner</button>' +
+          '<button class="btn btn-ghost" id="btn-choice-cancel">Cancel</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
   }
 
   function renderPinPanel(){
@@ -1253,6 +1291,11 @@
     if(filter === "delivery" || filter === "both") return !!shop.deliveryEnabled;
     return true; // "" (any) or "pickup"
   }
+  function hubMatchesRating(minRating, hub){
+    if(!minRating) return true;
+    var s = hubRatingSummary(hub);
+    return !!s && s.avg >= minRating;
+  }
   function allHubsRatingSummary(){
     var all = [];
     Object.keys(state.hubs).forEach(function(hid){ all = all.concat(state.hubs[hid].reviews); });
@@ -1266,7 +1309,8 @@
     var metaBits = [hub.shop.deliveryEnabled ? "🛵 Delivery available" : "🚶 Pickup only"];
     var ratingSummary = hubRatingSummary(hub);
     var ratingBadgeHtml = ratingSummary ? ('<span class="rating-badge">⭐ ' + ratingSummary.avg.toFixed(1) + ' (' + ratingSummary.count + ')</span>') : '';
-    return '<div class="hub-tile">' +
+    var stateClass = cs.state === "OPEN" ? "hub-tile-open" : (cs.state === "HOLIDAY" ? "hub-tile-holiday" : "hub-tile-closed");
+    return '<div class="hub-tile ' + stateClass + '">' +
       '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' + badgeForStatus(cs) + ratingBadgeHtml + '</div>' +
       '<h3>' + esc(hub.shop.name) + '</h3>' +
       '<p class="local">' + esc(hub.shop.local) + '</p>' +
@@ -1281,16 +1325,17 @@
   function renderHubGrid(){
     var openOnly = !!state.ui.hubFilterOpenOnly;
     var fulfilFilter = state.ui.hubFulfilmentFilter || "";
+    var ratingFilter = state.ui.hubRatingFilter || 0;
     var FULFIL_LABEL = { pickup:"Pickup", delivery:"Delivery", both:"Delivery + Pickup" };
-    var anyFilterOn = openOnly || !!fulfilFilter;
+    var anyFilterOn = openOnly || !!fulfilFilter || !!ratingFilter;
     var allRatingSummary = allHubsRatingSummary();
 
     var allHubIds = Object.keys(state.hubs);
     var visibleHubIds = allHubIds.filter(function(hid){ return state.hubs[hid].shop.visibleOnMainPage !== false; });
     var openCount = visibleHubIds.filter(function(hid){ return computeShopState(state.hubs[hid].shop).state === "OPEN"; }).length;
     var matchingHubIds = visibleHubIds.filter(function(hid){
-      var shop = state.hubs[hid].shop;
-      return (!openOnly || computeShopState(shop).state === "OPEN") && hubMatchesFulfilment(fulfilFilter, shop);
+      var hub = state.hubs[hid], shop = hub.shop;
+      return (!openOnly || computeShopState(shop).state === "OPEN") && hubMatchesFulfilment(fulfilFilter, shop) && hubMatchesRating(ratingFilter, hub);
     });
 
     var html = '<button class="crumb" id="btn-to-welcome">← ' + esc(state.hub.name) + '</button>';
@@ -1306,11 +1351,19 @@
       '<button class="fulfil-chip" data-fulfil-filter="delivery" aria-pressed="' + (fulfilFilter==="delivery") + '">🛵 Delivery</button>' +
       '<button class="fulfil-chip" data-fulfil-filter="both" aria-pressed="' + (fulfilFilter==="both") + '">🚶🛵 Both</button>' +
       '</div></div>';
-    html += '<div class="hub-kpi"><div class="k">Rating</div><div class="v" style="font-size:14px">' + (allRatingSummary ? ('⭐ ' + allRatingSummary.avg.toFixed(1) + ' (' + allRatingSummary.count + ')') : 'No ratings yet') + '</div></div>';
+    html += '<div class="hub-kpi"><div class="k">Rating' + (allRatingSummary ? (' <span style="font-weight:600">⭐ ' + allRatingSummary.avg.toFixed(1) + ' (' + allRatingSummary.count + ')</span>') : '') + '</div><div class="fulfil-chip-row">' +
+      '<button class="fulfil-chip" data-rating-filter="2" aria-pressed="' + (ratingFilter===2) + '">2★+</button>' +
+      '<button class="fulfil-chip" data-rating-filter="3" aria-pressed="' + (ratingFilter===3) + '">3★+</button>' +
+      '<button class="fulfil-chip" data-rating-filter="4" aria-pressed="' + (ratingFilter===4) + '">4★+</button>' +
+      '</div></div>';
     html += '</div>';
 
     if(anyFilterOn){
-      html += '<div class="filter-bar">Showing: ' + (openOnly?'Open now':'') + (openOnly&&fulfilFilter?' · ':'') + (fulfilFilter?FULFIL_LABEL[fulfilFilter]:'') +
+      var bits = [];
+      if(openOnly) bits.push('Open now');
+      if(fulfilFilter) bits.push(FULFIL_LABEL[fulfilFilter]);
+      if(ratingFilter) bits.push(ratingFilter + '★ and up');
+      html += '<div class="filter-bar">Showing: ' + bits.join(' · ') +
         ' <button class="btn btn-ghost btn-sm" id="btn-clear-hub-filters">Clear</button></div>';
     }
 
@@ -2096,6 +2149,21 @@
     if(t.id === "btn-cust-login-cancel"){ state.ui.showCustLogin = false; persist(); render(); return; }
     if(t.id === "btn-cust-login-submit"){ submitCustLogin(); return; }
 
+    if(t.id === "login-choice-backdrop" || t.id === "btn-choice-cancel"){ state.ui.showLoginChoice = false; persist(); render(); return; }
+    if(t.id === "btn-choice-customer"){
+      state.ui.showLoginChoice = false; state.ui.showCustLogin = true; state.ui.custLoginError = "";
+      state.ui.custLoginName = state.ui.name; state.ui.custLoginPhone = state.ui.phone;
+      persist(); render();
+      setTimeout(function(){ var el = document.getElementById("in-cust-login-name"); if(el) el.focus(); }, 30);
+      return;
+    }
+    if(t.id === "btn-choice-owner"){
+      state.ui.showLoginChoice = false; state.ui.showPin = true; state.ui.pinError = ""; state.ui.pinInput = "";
+      persist(); render();
+      setTimeout(function(){ var el = document.getElementById("pin-input"); if(el) el.focus(); }, 30);
+      return;
+    }
+
     var ownerTab;
     if((ownerTab = attr(t,"data-owner-tab"))){ state.ui.ownerTab = ownerTab; persist(); render(); return; }
 
@@ -2135,7 +2203,13 @@
       state.ui.hubFulfilmentFilter = (state.ui.hubFulfilmentFilter === filterKind) ? "" : filterKind;
       persist(); render(); return;
     }
-    if(t.id === "btn-clear-hub-filters"){ state.ui.hubFilterOpenOnly = false; state.ui.hubFulfilmentFilter = ""; persist(); render(); return; }
+    var ratingFilterKind;
+    if((ratingFilterKind = attr(t,"data-rating-filter"))){
+      var rv = Number(ratingFilterKind);
+      state.ui.hubRatingFilter = (state.ui.hubRatingFilter === rv) ? 0 : rv;
+      persist(); render(); return;
+    }
+    if(t.id === "btn-clear-hub-filters"){ state.ui.hubFilterOpenOnly = false; state.ui.hubFulfilmentFilter = ""; state.ui.hubRatingFilter = 0; persist(); render(); return; }
     if(t.id === "btn-open-hub"){ state.ui.customerStep = "shop"; persist(); render(); return; }
 
     var MAX_QTY_PER_ITEM = 20;
@@ -2755,12 +2829,8 @@
       state.ui.ownerUnlocked = false; state.ui.role = "customer"; state.ui.customerStep = "welcome";
       persist(); render(); toast("Owner view locked"); return;
     }
-    if(t.id === "btn-cust-login"){
-      state.ui.showCustLogin = true; state.ui.custLoginError = "";
-      state.ui.custLoginName = state.ui.name; state.ui.custLoginPhone = state.ui.phone;
-      persist(); render();
-      setTimeout(function(){ var el = document.getElementById("in-cust-login-name"); if(el) el.focus(); }, 30);
-      return;
+    if(t.id === "btn-open-login-choice"){
+      state.ui.showLoginChoice = true; persist(); render(); return;
     }
     if(t.id === "btn-cust-logout"){
       state.ui.customerLoggedIn = false; state.ui.name = ""; state.ui.phone = "";
