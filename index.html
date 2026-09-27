@@ -2692,6 +2692,80 @@
     Object.keys(orders).forEach(function(oid){ out[prefix + "/orders/" + oid] = orders[oid]; });
     return out;
   }
+
+  // One-time onboarding data for the hubs added via the filled-in Excel template — baked in
+  // here instead of asking the owner to use the Firebase console's Import JSON UI, which
+  // turned out to be too fiddly to walk through remotely. seedNewHubsIfMissing() below only
+  // ever adds a slug that doesn't already exist, so this is safe to leave in permanently and
+  // safe to run on every load. Safe to delete this block once all 5 show up live.
+  var NEW_HUBS_SEED = {
+    ma: {
+      shop: { name:"Morya", local:"मोरया", address:"DSK Vishwa, Dhayari, Pune", addressLocal:"डीएसके विश्व, धायरी, पुणे", mapsUrl:"", ownerWhatsapp:"9420864330", tokenPrefix:"MA", openTime1:"09:00", closeTime1:"13:00", openTime2:"17:00", closeTime2:"21:00", weeklyHolidays:[], deliveryEnabled:true, avgPrepMinutes:5, upiId:"", upiPayeeName:"", staffPin:"2345", visibleOnMainPage:true, isOpenManual:true, closureReason:"", holidayFrom:"", holidayTo:"", holidayReason:"", parallelSlots:2, todaySpecialId:"", qrLogoDataUrl:"", voiceAnnounce:true },
+      menu: [
+        { id:"tandul-bhakri", name:"Tandul Bhakri", local:"तांदूळ भाकरी", price:25, available:true, occasion:"", showOnMenu:true },
+        { id:"jowar-bhakri", name:"Jowar Bhakri", local:"ज्वारी भाकरी", price:25, available:true, occasion:"", showOnMenu:true },
+        { id:"bajra-bhakri", name:"Bajra Bhakri", local:"बाजरी भाकरी", price:25, available:true, occasion:"", showOnMenu:true },
+        { id:"nachni-bhakri", name:"Nachni Bhakri", local:"नाचणी भाकरी", price:30, available:true, occasion:"", showOnMenu:true },
+        { id:"chapati", name:"Chapati", local:"चपाती", price:10, available:true, occasion:"", showOnMenu:true },
+        { id:"puran-poli", name:"Puran Poli", local:"पुरण पोळी", price:45, available:true, occasion:"", showOnMenu:true },
+        { id:"modak", name:"Modak", local:"मोदक", price:45, available:false, occasion:"", showOnMenu:true }
+      ]
+    },
+    cm: {
+      shop: { name:"Chatak Matak", local:"चटक मटक", address:"DSK Vishwa, Dhayari, Pune", addressLocal:"डीएसके विश्व, धायरी, पुणे", mapsUrl:"", ownerWhatsapp:"", tokenPrefix:"CM", openTime1:"09:00", closeTime1:"13:00", openTime2:"17:00", closeTime2:"21:00", weeklyHolidays:[], deliveryEnabled:true, avgPrepMinutes:4, upiId:"", upiPayeeName:"", staffPin:"3456", visibleOnMainPage:true, isOpenManual:true, closureReason:"", holidayFrom:"", holidayTo:"", holidayReason:"", parallelSlots:2, todaySpecialId:"", qrLogoDataUrl:"", voiceAnnounce:true },
+      menu: [
+        { id:"kanda-pohe", name:"Kanda pohe", local:"कांदा पोहे", price:30, available:true, occasion:"", showOnMenu:true },
+        { id:"sajuk-tupacha-sheera", name:"Sajuk tupacha sheera", local:"साजूक तुपाचा शिरा", price:50, available:true, occasion:"", showOnMenu:true },
+        { id:"idli-chutney", name:"Idli chutney", local:"इडली चटणी", price:40, available:true, occasion:"", showOnMenu:true },
+        { id:"idli-chutney-sambar", name:"Idli chutney sambar", local:"इडली चटणी सांबार", price:50, available:true, occasion:"", showOnMenu:true },
+        { id:"medu-wada-chutney", name:"Medu wada chutney", local:"मेदू वडा चटणी", price:45, available:true, occasion:"", showOnMenu:true },
+        { id:"medu-wada-chutney-sambar", name:"Medu wada chutney sambar", local:"मेदू वडा चटणी सांबार", price:60, available:true, occasion:"", showOnMenu:true }
+      ]
+    },
+    ap: {
+      shop: { name:"Annapurna", local:"अन्नपूर्णा", address:"DSK Vishwa, Dhayari, Pune", addressLocal:"डीएसके विश्व, धायरी, पुणे", mapsUrl:"", ownerWhatsapp:"8999668145", tokenPrefix:"AP", openTime1:"09:00", closeTime1:"13:00", openTime2:"17:00", closeTime2:"21:00", weeklyHolidays:[], deliveryEnabled:true, avgPrepMinutes:3, upiId:"", upiPayeeName:"", staffPin:"4567", visibleOnMainPage:true, isOpenManual:true, closureReason:"", holidayFrom:"", holidayTo:"", holidayReason:"", parallelSlots:2, todaySpecialId:"", qrLogoDataUrl:"", voiceAnnounce:true },
+      menu: [
+        { id:"kanda-pohe", name:"Kanda pohe", local:"कांदा पोहे", price:30, available:true, occasion:"", showOnMenu:true },
+        { id:"sajuk-tupacha-sheera", name:"Sajuk tupacha sheera", local:"साजूक तुपाचा शिरा", price:50, available:true, occasion:"", showOnMenu:true },
+        { id:"idli-chutney", name:"Idli chutney", local:"इडली चटणी", price:40, available:true, occasion:"", showOnMenu:true },
+        { id:"idli-chutney-sambar", name:"Idli chutney sambar", local:"इडली चटणी सांबार", price:50, available:true, occasion:"", showOnMenu:true },
+        { id:"medu-wada-chutney", name:"Medu wada chutney", local:"मेदू वडा चटणी", price:45, available:true, occasion:"", showOnMenu:true },
+        { id:"medu-wada-chutney-sambar", name:"Medu wada chutney sambar", local:"मेदू वडा चटणी सांबार", price:60, available:true, occasion:"", showOnMenu:true }
+      ]
+    },
+    pb: {
+      shop: { name:"Potoba", local:"पोटोबा", address:"DSK Vishwa, Dhayari, Pune", addressLocal:"डीएसके विश्व, धायरी, पुणे", mapsUrl:"", ownerWhatsapp:"9356007010", tokenPrefix:"PB", openTime1:"09:00", closeTime1:"13:00", openTime2:"17:00", closeTime2:"21:00", weeklyHolidays:[], deliveryEnabled:true, avgPrepMinutes:10, upiId:"", upiPayeeName:"", staffPin:"5678", visibleOnMainPage:true, isOpenManual:true, closureReason:"", holidayFrom:"", holidayTo:"", holidayReason:"", parallelSlots:2, todaySpecialId:"", qrLogoDataUrl:"", voiceAnnounce:true },
+      menu: [
+        { id:"kanda-pohe", name:"Kanda pohe", local:"कांदा पोहे", price:30, available:true, occasion:"", showOnMenu:true },
+        { id:"sajuk-tupacha-sheera", name:"Sajuk tupacha sheera", local:"साजूक तुपाचा शिरा", price:50, available:true, occasion:"", showOnMenu:true },
+        { id:"idli-chutney", name:"Idli chutney", local:"इडली चटणी", price:40, available:true, occasion:"", showOnMenu:true },
+        { id:"idli-chutney-sambar", name:"Idli chutney sambar", local:"इडली चटणी सांबार", price:50, available:true, occasion:"", showOnMenu:true },
+        { id:"medu-wada-chutney", name:"Medu wada chutney", local:"मेदू वडा चटणी", price:45, available:true, occasion:"", showOnMenu:true },
+        { id:"medu-wada-chutney-sambar", name:"Medu wada chutney sambar", local:"मेदू वडा चटणी सांबार", price:60, available:true, occasion:"", showOnMenu:true }
+      ]
+    },
+    st: {
+      shop: { name:"Sai Tadka", local:"साई तडका", address:"DSK Vishwa, Dhayari, Pune", addressLocal:"डीएसके विश्व, धायरी, पुणे", mapsUrl:"", ownerWhatsapp:"9881863686", tokenPrefix:"ST", openTime1:"09:00", closeTime1:"13:00", openTime2:"17:00", closeTime2:"21:00", weeklyHolidays:[], deliveryEnabled:true, avgPrepMinutes:2, upiId:"", upiPayeeName:"", staffPin:"6789", visibleOnMainPage:true, isOpenManual:true, closureReason:"", holidayFrom:"", holidayTo:"", holidayReason:"", parallelSlots:2, todaySpecialId:"", qrLogoDataUrl:"", voiceAnnounce:true },
+      menu: [
+        { id:"kanda-pohe", name:"Kanda pohe", local:"कांदा पोहे", price:30, available:true, occasion:"", showOnMenu:true },
+        { id:"sajuk-tupacha-sheera", name:"Sajuk tupacha sheera", local:"साजूक तुपाचा शिरा", price:50, available:true, occasion:"", showOnMenu:true },
+        { id:"idli-chutney", name:"Idli chutney", local:"इडली चटणी", price:40, available:true, occasion:"", showOnMenu:true },
+        { id:"idli-chutney-sambar", name:"Idli chutney sambar", local:"इडली चटणी सांबार", price:50, available:true, occasion:"", showOnMenu:true },
+        { id:"medu-wada-chutney", name:"Medu wada chutney", local:"मेदू वडा चटणी", price:45, available:true, occasion:"", showOnMenu:true },
+        { id:"medu-wada-chutney-sambar", name:"Medu wada chutney sambar", local:"मेदू वडा चटणी सांबार", price:60, available:true, occasion:"", showOnMenu:true }
+      ]
+    }
+  };
+  function seedNewHubsIfMissing(){
+    cloud.db.ref("hubs").once("value").then(function(snap){
+      var existing = snap.val() || {};
+      var update = {};
+      Object.keys(NEW_HUBS_SEED).forEach(function(slug){
+        if(!existing[slug]) Object.assign(update, hubFieldUpdates("hubs/" + slug, NEW_HUBS_SEED[slug]));
+      });
+      if(Object.keys(update).length) return cloud.db.ref().update(update);
+    }).catch(function(){});
+  }
   function migrateToHubsTreeIfNeeded(){
     // A "hub" record from before this session's rebrand may still hold the old literal
     // name. This runs every load, independent of the hubs-migration guard below (which
@@ -2772,6 +2846,7 @@
         serverTimeOffsetMs = snap.val() || 0;
       });
       migrateToHubsTreeIfNeeded();
+      seedNewHubsIfMissing();
       attachCloudListeners();
       initPush();
     }catch(e){ cloud.enabled = false; cloud.db = null; }
