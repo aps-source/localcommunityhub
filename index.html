@@ -462,7 +462,7 @@
   .welcome h2{ font-size:32px; letter-spacing:-.01em; }
   .welcome-sub{ color:var(--ink-soft); font-size:14.5px; margin:14px 0 26px; line-height:1.65; }
   .btn-lg{ padding:14px 28px; font-size:15px; border-radius:13px; }
-  .welcome-steps{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:34px; text-align:left; }
+  .welcome-steps{ display:grid; grid-template-columns:repeat(auto-fit, minmax(170px,1fr)); gap:14px; margin-top:34px; text-align:left; }
   @media (max-width:560px){ .welcome-steps{ grid-template-columns:1fr; } }
   .step-card{ background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:16px; box-shadow:var(--shadow); transition:transform .15s ease, box-shadow .15s ease; }
   .step-card:hover{ transform:translateY(-2px); box-shadow:var(--shadow-lift); }
@@ -1205,13 +1205,14 @@
     }
     return '<div class="welcome">' +
       '<div class="welcome-mark">🫓</div>' +
-      '<h2 class="display">Welcome to DSK Food Hub</h2>' +
+      '<h2 class="display">Welcome to DSK Community Hub</h2>' +
       '<p class="welcome-sub">Order ahead from your community\'s food hubs, get a token, and pay when you collect — no app to install, no card needed.</p>' +
       '<button class="btn btn-primary btn-lg" id="btn-enter-hubs">Browse food hubs →</button>' +
       '<div class="welcome-steps">' +
         step("1","Pick a hub","Choose from the food hubs and shops near you") +
         step("2","Order &amp; get a token","Add items, choose pickup or home delivery") +
         step("3","Pay at the hub","No online payment — settle up when you collect") +
+        step("4","🛵 Or get it delivered","Choose home delivery at checkout and we\'ll bring it to your door") +
       '</div>' +
     '</div>';
   }
