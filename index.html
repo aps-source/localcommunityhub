@@ -504,9 +504,15 @@
   .hub-hero h2{ margin:0; font-size:21px; color:#fff; letter-spacing:-.01em; }
   .hub-hero p{ margin:5px 0 0; opacity:.9; font-size:13px; }
   .hub-kpis{ display:grid; grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:10px; margin-bottom:18px; }
-  .hub-kpi{ background:var(--surface); border:1px solid var(--line); border-left:4px solid var(--gold); border-radius:12px; padding:12px 14px; box-shadow:var(--shadow); }
-  .hub-kpi .k{ font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-soft); font-weight:800; }
+  .hub-kpi{ background:var(--surface); border:1px solid var(--line); border-left:4px solid var(--gold); border-radius:12px; padding:12px 14px; box-shadow:var(--shadow); text-align:left; font-family:inherit; width:100%; }
+  .hub-kpi .k{ font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-soft); font-weight:800; display:flex; justify-content:space-between; align-items:center; }
   .hub-kpi .v{ font-size:18px; font-weight:800; color:var(--ink); margin-top:3px; line-height:1.2; }
+  .hub-kpi.filterable{ cursor:pointer; transition:border-color .15s ease, background .15s ease; }
+  .hub-kpi.filterable:hover{ border-color:var(--gold); }
+  .hub-kpi.filterable .filter-hint{ font-size:9px; text-transform:none; letter-spacing:0; font-weight:600; color:var(--ink-soft); opacity:.7; }
+  .hub-kpi.filterable[aria-pressed="true"]{ background:var(--gold-soft); border-left-color:var(--gold-ink); }
+  .hub-kpi.filterable[aria-pressed="true"] .filter-hint{ display:none; }
+  .filter-bar{ font-size:12.5px; color:var(--ink-soft); margin:-6px 0 14px; display:flex; align-items:center; gap:8px; }
 
   /* ============ Customer: hub profile (full details) page ============ */
   .profile-card{ background:var(--surface); border:1px solid var(--line); border-radius:18px; padding:20px 22px; box-shadow:var(--shadow); margin-bottom:14px; }
@@ -642,7 +648,8 @@
           customerLoggedIn:false, showCustLogin:false, custLoginName:"", custLoginPhone:"", custLoginError:"",
           lastSeenOrderTs: null, lastSeenCustomerActionTs: null, bestSellerPeriod: "today", reviewDraftRating: 0, reviewDraftComment: "", pushEnabledHere: false,
           editingOrderId: null, cancelling: null,
-          custVoiceAlert: true, voiceLastOrderId: null, voiceLastStatus: null }
+          custVoiceAlert: true, voiceLastOrderId: null, voiceLastStatus: null,
+          myOrderIds: [], hubFilterOpenOnly: false, hubFilterDeliveryOnly: false }
   };
 
   function load(){
@@ -666,6 +673,11 @@
     if(state.ui.activeOrderId){
       var o = state.orders.find(function(x){ return x.id === state.ui.activeOrderId; });
       if(o && state.ui.customerStep === "welcome") state.ui.customerStep = "shop";
+      // Carry the order this device already had open into the new device-scoped history list,
+      // so upgrading to the fix above doesn't make an in-progress order vanish from it.
+      if((state.ui.myOrderIds||[]).indexOf(state.ui.activeOrderId) === -1){
+        (state.ui.myOrderIds = state.ui.myOrderIds || []).push(state.ui.activeOrderId);
+      }
     }
     // the owner dashboard is only ever reachable through the PIN sign-in below —
     // never leave a page loaded straight into it just because a stale value was saved.
@@ -1207,19 +1219,29 @@
     var ratingBadgeHtml = ratingSummary ? ('<span class="rating-badge">⭐ ' + ratingSummary.avg.toFixed(1) + ' (' + ratingSummary.count + ')</span>') : '';
     var hubVisible = state.shop.visibleOnMainPage !== false;
     var statusText = cs.state === "OPEN" ? "Open now" : (cs.state === "HOLIDAY" ? "On leave" : "Closed");
+    var openOnly = !!state.ui.hubFilterOpenOnly, deliveryOnly = !!state.ui.hubFilterDeliveryOnly;
+    // With one hub today these two toggles just show/hide it — they're built to actually
+    // narrow things down once more hubs join, same idea as a slicer on a report.
+    var passesFilter = (!openOnly || cs.state === "OPEN") && (!deliveryOnly || state.shop.deliveryEnabled);
+    var anyFilterOn = openOnly || deliveryOnly;
 
     var html = '<button class="crumb" id="btn-to-welcome">← DSK Food Hub</button>';
     html += '<div class="hub-hero"><h2>Choose a food hub</h2><p>Pick a hub near you, check what\'s open, then order ahead and pay when you collect or receive it.</p></div>';
 
     html += '<div class="hub-kpis">';
     html += '<div class="hub-kpi"><div class="k">Hubs live today</div><div class="v">' + (hubVisible?1:0) + '</div></div>';
-    html += '<div class="hub-kpi"><div class="k">Status</div><div class="v">' + statusText + '</div></div>';
-    html += '<div class="hub-kpi"><div class="k">Fulfilment</div><div class="v" style="font-size:14px">' + (state.shop.deliveryEnabled?"Delivery + pickup":"Pickup only") + '</div></div>';
+    html += '<button class="hub-kpi filterable" data-toggle-filter="open" aria-pressed="' + openOnly + '"><div class="k">Status<span class="filter-hint">tap to filter</span></div><div class="v">' + statusText + '</div></button>';
+    html += '<button class="hub-kpi filterable" data-toggle-filter="delivery" aria-pressed="' + deliveryOnly + '"><div class="k">Fulfilment<span class="filter-hint">tap to filter</span></div><div class="v" style="font-size:14px">' + (state.shop.deliveryEnabled?"Delivery + pickup":"Pickup only") + '</div></button>';
     html += '<div class="hub-kpi"><div class="k">Rating</div><div class="v" style="font-size:14px">' + (ratingSummary ? ('⭐ ' + ratingSummary.avg.toFixed(1) + ' (' + ratingSummary.count + ')') : 'No ratings yet') + '</div></div>';
     html += '</div>';
 
+    if(anyFilterOn){
+      html += '<div class="filter-bar">Showing: ' + (openOnly?'Open now':'') + (openOnly&&deliveryOnly?' · ':'') + (deliveryOnly?'Delivery available':'') +
+        ' <button class="btn btn-ghost btn-sm" id="btn-clear-hub-filters">Clear</button></div>';
+    }
+
     html += '<div class="hub-grid">';
-    if(hubVisible){
+    if(hubVisible && passesFilter){
       html += '<div class="hub-tile">' +
         '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' + badgeForStatus(cs) + ratingBadgeHtml + '</div>' +
         '<h3>' + esc(state.shop.name) + '</h3>' +
@@ -1231,6 +1253,8 @@
           '<button class="hub-tile-view" data-open-hub="1">View menu →</button>' +
         '</div>' +
         '</div>';
+    } else if(hubVisible){
+      html += '<div class="empty-note">No hubs match your filters. <button class="btn btn-ghost btn-sm" id="btn-clear-hub-filters">Clear filters</button></div>';
     } else {
       html += '<div class="empty-note">No hubs available right now — check back later.</div>';
     }
@@ -1512,8 +1536,14 @@
     }
     return html;
   }
+  // "Orders from this device" must only ever list orders placed from THIS browser — it was
+  // previously returning every order for the whole shop (a real privacy leak: any customer
+  // could see every other customer's token, date and status). myOrderIds is local-only
+  // (never synced to the cloud), populated the moment an order is placed on this device.
   function todaysAndPastOrders(){
-    return state.orders.slice().sort(function(a,b){ return b.createdAt - a.createdAt; });
+    var mine = state.ui.myOrderIds || [];
+    return state.orders.filter(function(o){ return mine.indexOf(o.id) !== -1; })
+      .sort(function(a,b){ return b.createdAt - a.createdAt; });
   }
 
   /* ---------- Owner view ---------- */
@@ -2019,6 +2049,13 @@
     if(t.id === "btn-to-hubs"){ state.ui.customerStep = "hubs"; persist(); render(); return; }
     if(attr(t,"data-open-hub")){ state.ui.customerStep = "shop"; persist(); render(); return; }
     if(attr(t,"data-open-hub-profile")){ state.ui.customerStep = "hubProfile"; persist(); render(); return; }
+    var filterKind;
+    if((filterKind = attr(t,"data-toggle-filter"))){
+      if(filterKind === "open") state.ui.hubFilterOpenOnly = !state.ui.hubFilterOpenOnly;
+      else if(filterKind === "delivery") state.ui.hubFilterDeliveryOnly = !state.ui.hubFilterDeliveryOnly;
+      persist(); render(); return;
+    }
+    if(t.id === "btn-clear-hub-filters"){ state.ui.hubFilterOpenOnly = false; state.ui.hubFilterDeliveryOnly = false; persist(); render(); return; }
     if(t.id === "btn-open-hub"){ state.ui.customerStep = "shop"; persist(); render(); return; }
 
     var MAX_QTY_PER_ITEM = 20;
@@ -2297,6 +2334,7 @@
       state.ui.cart = {};
       state.ui.notes = "";
       state.ui.activeOrderId = order.id;
+      (state.ui.myOrderIds = state.ui.myOrderIds || []).push(order.id);
       persist();
       render();
       toast("Order placed — token " + order.tokenDisplay);
