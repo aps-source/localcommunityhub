@@ -513,6 +513,19 @@
   .hub-kpi.filterable[aria-pressed="true"]{ background:var(--gold-soft); border-left-color:var(--gold-ink); }
   .hub-kpi.filterable[aria-pressed="true"] .filter-hint{ display:none; }
   .filter-bar{ font-size:12.5px; color:var(--ink-soft); margin:-6px 0 14px; display:flex; align-items:center; gap:8px; }
+  .fulfil-chip-row{ display:flex; gap:6px; flex-wrap:wrap; margin-top:5px; }
+  .fulfil-chip{ font-family:inherit; cursor:pointer; font-size:12px; font-weight:700; padding:5px 10px; border-radius:999px; border:1px solid var(--line); background:var(--surface-2); color:var(--ink-soft); }
+  .fulfil-chip:hover{ border-color:var(--gold); color:var(--ink); }
+  .fulfil-chip[aria-pressed="true"]{ background:var(--gold); border-color:var(--gold); color:#fff; }
+
+  /* ============ Sponsored / ad placeholder slots ============ */
+  .ad-slot{
+    border:1.5px dashed var(--gold-ink); border-radius:16px; padding:16px; background:var(--gold-soft); color:var(--gold-ink);
+    font-size:12.5px; font-weight:700; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+    min-height:120px;
+  }
+  .ad-slot-banner{ margin-bottom:16px; min-height:auto; padding:12px 16px; }
+  .ad-slot a{ color:inherit; text-decoration:underline; font-weight:800; }
 
   /* ============ Customer: hub profile (full details) page ============ */
   .profile-card{ background:var(--surface); border:1px solid var(--line); border-radius:18px; padding:20px 22px; box-shadow:var(--shadow); margin-bottom:14px; }
@@ -649,7 +662,7 @@
           lastSeenOrderTs: null, lastSeenCustomerActionTs: null, bestSellerPeriod: "today", reviewDraftRating: 0, reviewDraftComment: "", pushEnabledHere: false,
           editingOrderId: null, cancelling: null,
           custVoiceAlert: true, voiceLastOrderId: null, voiceLastStatus: null,
-          myOrderIds: [], hubFilterOpenOnly: false, hubFilterDeliveryOnly: false }
+          myOrderIds: [], hubFilterOpenOnly: false, hubFulfilmentFilter: "" }
   };
 
   function load(){
@@ -1211,6 +1224,14 @@
     return h12 + ":" + m + " " + ap;
   }
 
+  // pickup is never toggled off anywhere in this app — every hub always offers it — so a
+  // "pickup" filter matches everything, "delivery" and "both" both key off deliveryEnabled.
+  // They read as three distinct choices for the customer and stay ready to actually diverge
+  // the day a delivery-only hub (no counter pickup) joins.
+  function hubMatchesFulfilment(filter, shop){
+    if(filter === "delivery" || filter === "both") return !!shop.deliveryEnabled;
+    return true; // "" (any) or "pickup"
+  }
   function renderHubGrid(){
     var cs = computeShopState();
     var special = state.menu.find(function(m){ return m.id === state.shop.todaySpecialId; });
@@ -1219,24 +1240,32 @@
     var ratingBadgeHtml = ratingSummary ? ('<span class="rating-badge">⭐ ' + ratingSummary.avg.toFixed(1) + ' (' + ratingSummary.count + ')</span>') : '';
     var hubVisible = state.shop.visibleOnMainPage !== false;
     var statusText = cs.state === "OPEN" ? "Open now" : (cs.state === "HOLIDAY" ? "On leave" : "Closed");
-    var openOnly = !!state.ui.hubFilterOpenOnly, deliveryOnly = !!state.ui.hubFilterDeliveryOnly;
-    // With one hub today these two toggles just show/hide it — they're built to actually
-    // narrow things down once more hubs join, same idea as a slicer on a report.
-    var passesFilter = (!openOnly || cs.state === "OPEN") && (!deliveryOnly || state.shop.deliveryEnabled);
-    var anyFilterOn = openOnly || deliveryOnly;
+    var openOnly = !!state.ui.hubFilterOpenOnly;
+    var fulfilFilter = state.ui.hubFulfilmentFilter || "";
+    var FULFIL_LABEL = { pickup:"Pickup", delivery:"Delivery", both:"Delivery + Pickup" };
+    var passesFilter = (!openOnly || cs.state === "OPEN") && hubMatchesFulfilment(fulfilFilter, state.shop);
+    var anyFilterOn = openOnly || !!fulfilFilter;
 
     var html = '<button class="crumb" id="btn-to-welcome">← DSK Food Hub</button>';
     html += '<div class="hub-hero"><h2>Choose a food hub</h2><p>Pick a hub near you, check what\'s open, then order ahead and pay when you collect or receive it.</p></div>';
 
+    var waAdInterest = waLink(state.shop.ownerWhatsapp, "Hi, I'm interested in advertising on DSK Food Hub.");
+    html += '<div class="ad-slot ad-slot-banner">📢 Sponsored space available — reach local customers on DSK Food Hub.' +
+      (waAdInterest ? (' <a href="' + waAdInterest + '" target="_blank" rel="noopener">Advertise here →</a>') : '') + '</div>';
+
     html += '<div class="hub-kpis">';
     html += '<div class="hub-kpi"><div class="k">Hubs live today</div><div class="v">' + (hubVisible?1:0) + '</div></div>';
     html += '<button class="hub-kpi filterable" data-toggle-filter="open" aria-pressed="' + openOnly + '"><div class="k">Status<span class="filter-hint">tap to filter</span></div><div class="v">' + statusText + '</div></button>';
-    html += '<button class="hub-kpi filterable" data-toggle-filter="delivery" aria-pressed="' + deliveryOnly + '"><div class="k">Fulfilment<span class="filter-hint">tap to filter</span></div><div class="v" style="font-size:14px">' + (state.shop.deliveryEnabled?"Delivery + pickup":"Pickup only") + '</div></button>';
+    html += '<div class="hub-kpi"><div class="k">Fulfilment</div><div class="fulfil-chip-row">' +
+      '<button class="fulfil-chip" data-fulfil-filter="pickup" aria-pressed="' + (fulfilFilter==="pickup") + '">🚶 Pickup</button>' +
+      '<button class="fulfil-chip" data-fulfil-filter="delivery" aria-pressed="' + (fulfilFilter==="delivery") + '">🛵 Delivery</button>' +
+      '<button class="fulfil-chip" data-fulfil-filter="both" aria-pressed="' + (fulfilFilter==="both") + '">🚶🛵 Both</button>' +
+      '</div></div>';
     html += '<div class="hub-kpi"><div class="k">Rating</div><div class="v" style="font-size:14px">' + (ratingSummary ? ('⭐ ' + ratingSummary.avg.toFixed(1) + ' (' + ratingSummary.count + ')') : 'No ratings yet') + '</div></div>';
     html += '</div>';
 
     if(anyFilterOn){
-      html += '<div class="filter-bar">Showing: ' + (openOnly?'Open now':'') + (openOnly&&deliveryOnly?' · ':'') + (deliveryOnly?'Delivery available':'') +
+      html += '<div class="filter-bar">Showing: ' + (openOnly?'Open now':'') + (openOnly&&fulfilFilter?' · ':'') + (fulfilFilter?FULFIL_LABEL[fulfilFilter]:'') +
         ' <button class="btn btn-ghost btn-sm" id="btn-clear-hub-filters">Clear</button></div>';
     }
 
@@ -1259,6 +1288,7 @@
       html += '<div class="empty-note">No hubs available right now — check back later.</div>';
     }
     html += '<div class="hub-tile-ghost">More food hubs will show up here as your community adds them</div>';
+    html += '<div class="ad-slot">Your ad here — reach local customers.' + (waAdInterest ? (' <a href="' + waAdInterest + '" target="_blank" rel="noopener">Get in touch →</a>') : '') + '</div>';
     html += '</div>';
     return html;
   }
@@ -2052,10 +2082,13 @@
     var filterKind;
     if((filterKind = attr(t,"data-toggle-filter"))){
       if(filterKind === "open") state.ui.hubFilterOpenOnly = !state.ui.hubFilterOpenOnly;
-      else if(filterKind === "delivery") state.ui.hubFilterDeliveryOnly = !state.ui.hubFilterDeliveryOnly;
       persist(); render(); return;
     }
-    if(t.id === "btn-clear-hub-filters"){ state.ui.hubFilterOpenOnly = false; state.ui.hubFilterDeliveryOnly = false; persist(); render(); return; }
+    if((filterKind = attr(t,"data-fulfil-filter"))){
+      state.ui.hubFulfilmentFilter = (state.ui.hubFulfilmentFilter === filterKind) ? "" : filterKind;
+      persist(); render(); return;
+    }
+    if(t.id === "btn-clear-hub-filters"){ state.ui.hubFilterOpenOnly = false; state.ui.hubFulfilmentFilter = ""; persist(); render(); return; }
     if(t.id === "btn-open-hub"){ state.ui.customerStep = "shop"; persist(); render(); return; }
 
     var MAX_QTY_PER_ITEM = 20;
