@@ -1231,7 +1231,10 @@
     var ahead = activeOrdersAheadOf(Infinity);
     var eta = computeEta(ahead);
     var etaChip = cs.state === "OPEN" ? '<span class="eta-chip">⏱ ' + eta.min + '–' + eta.max + ' min wait</span>' : "";
-    var delivery = currentHub().shop.deliveryEnabled ? '<span class="badge" style="background:var(--teal-soft);color:var(--teal)">🛵 Delivery on</span>' : '<span class="badge" style="background:var(--surface-2);color:var(--ink-soft)">🛵 Pickup only</span>';
+    // "Delivery on" next to a Closed badge reads as a live promise you can order delivery
+    // right now — say so only while actually open; otherwise it's a capability, not a status.
+    var delivery = !currentHub().shop.deliveryEnabled ? '<span class="badge" style="background:var(--surface-2);color:var(--ink-soft)">🛵 Pickup only</span>' :
+      (cs.state === "OPEN" ? '<span class="badge" style="background:var(--teal-soft);color:var(--teal)">🛵 Delivery on</span>' : '<span class="badge" style="background:var(--surface-2);color:var(--ink-soft)">🛵 Delivery available when open</span>');
 
     document.getElementById("ribbon").innerHTML =
       '<span class="shop-name">' + esc(currentHub().shop.name) + '</span>' +
@@ -1611,7 +1614,13 @@
     var html = '<div class="card accent-customer">';
     html += '<h2>' + (editing ? "Update your order" : "Your order") + '</h2>';
     if(lines.length === 0){
-      html += '<div class="empty-note">Add items from the menu to start an order.</div>';
+      if(!openForOrders){
+        var cs = computeShopState(currentHub().shop);
+        var closedNote = cs.state === "HOLIDAY" ? ("back " + fmtDate(cs.until) + (cs.reason ? " — " + esc(cs.reason) : "")) : (cs.reason ? esc(cs.reason) : "currently closed");
+        html += '<div class="empty-note">Closed — ' + closedNote + '. You can browse the menu below; ordering opens once the hub reopens.</div>';
+      } else {
+        html += '<div class="empty-note">Add items from the menu to start an order.</div>';
+      }
     } else {
       lines.forEach(function(l){
         html += '<div class="cart-line"><span>' + l.qty + '× ' + esc(l.item.name) + '</span><span style="display:flex;align-items:center;gap:8px"><span class="mono">' + money(l.item.price*l.qty) + '</span><button class="x" data-remove="' + l.item.id + '">✕</button></span></div>';
