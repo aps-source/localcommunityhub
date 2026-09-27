@@ -2677,25 +2677,38 @@
      already has a hubs tree is left alone. The old top-level keys are never deleted by this
      — they're just no longer read after this — so nothing is lost if this runs twice. */
   function migrateToHubsTreeIfNeeded(){
-    cloud.db.ref().once("value").then(function(snap){
-      var val = snap.val() || {};
-      if(val.hubs && Object.keys(val.hubs).length) return; // already on the new shape
-      var update = {};
-      if(val.shop){
-        var slug = (val.shop.tokenPrefix || "hub").toLowerCase().replace(/[^a-z0-9]/g,"") || "hub";
-        update["hubs/" + slug] = {
-          shop: val.shop,
-          menu: val.menu || [],
-          counter: val.counter || { date: todayStr(), next: 1 },
-          orders: val.orders || {},
-          reviews: val.reviews || {}
-        };
-        if(!val.hub) update.hub = DEFAULT_STATE.hub;
-      } else {
-        update.hub = DEFAULT_STATE.hub;
-        update.hubs = DEFAULT_STATE.hubs;
-      }
-      cloud.db.ref().update(update).catch(function(){});
+    // Reading the database root (ref().once("value")) needs a ".read" rule at "/" itself —
+    // this project's rules only grant read on named children, so a root read is always
+    // denied. Fetch each old top-level path individually instead; each one is covered.
+    cloud.db.ref("hubs").once("value").then(function(hubsSnap){
+      if(hubsSnap.exists() && Object.keys(hubsSnap.val()).length) return; // already on the new shape
+      return Promise.all([
+        cloud.db.ref("shop").once("value"),
+        cloud.db.ref("menu").once("value"),
+        cloud.db.ref("counter").once("value"),
+        cloud.db.ref("orders").once("value"),
+        cloud.db.ref("reviews").once("value"),
+        cloud.db.ref("hub").once("value")
+      ]).then(function(snaps){
+        var shop = snaps[0].val(), menu = snaps[1].val(), counter = snaps[2].val(),
+            orders = snaps[3].val(), reviews = snaps[4].val(), hub = snaps[5].val();
+        var update = {};
+        if(shop){
+          var slug = (shop.tokenPrefix || "hub").toLowerCase().replace(/[^a-z0-9]/g,"") || "hub";
+          update["hubs/" + slug] = {
+            shop: shop,
+            menu: menu || [],
+            counter: counter || { date: todayStr(), next: 1 },
+            orders: orders || {},
+            reviews: reviews || {}
+          };
+          if(!hub) update.hub = DEFAULT_STATE.hub;
+        } else {
+          update.hub = DEFAULT_STATE.hub;
+          update.hubs = DEFAULT_STATE.hubs;
+        }
+        return cloud.db.ref().update(update);
+      });
     }).catch(function(){});
   }
   function attachCloudListeners(){
