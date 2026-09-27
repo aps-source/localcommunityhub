@@ -483,16 +483,39 @@
   .hub-tile h3{ font-size:18px; letter-spacing:-.01em; }
   .hub-tile .local{ margin:0; color:var(--ink-soft); font-size:12px; }
   .hub-tile-meta{ font-size:12.5px; color:var(--ink-soft); }
-  .hub-tile-hours{ font-size:12px; color:var(--teal); font-weight:600; }
   .rating-badge{ font-size:11.5px; font-weight:800; color:var(--gold-ink); background:var(--gold-soft); padding:3px 9px; border-radius:999px; }
-  .hub-tile-address{ font-size:11.5px; color:var(--ink-soft); line-height:1.4; }
-  .hub-tile-address-local{ font-size:10.5px; color:var(--ink-soft); opacity:.85; line-height:1.4; margin-top:-4px; }
   .hub-tile-special{ font-size:12px; color:var(--gold-ink); font-weight:700; }
-  .hub-tile-cta{ margin-top:auto; padding-top:8px; font-weight:800; font-size:12.5px; color:var(--gold-ink); }
   .hub-tile-ghost{
     border:1.5px dashed var(--line); border-radius:16px; padding:18px; display:flex; align-items:center; justify-content:center;
     text-align:center; color:var(--ink-soft); font-size:12.5px; min-height:120px; background:transparent;
   }
+  .hub-tile-actions{ display:flex; gap:8px; margin-top:auto; padding-top:10px; }
+  .hub-tile-actions a, .hub-tile-actions button{ font-family:inherit; cursor:pointer; text-decoration:none; text-align:center; border-radius:999px; font-weight:800; font-size:12.5px; padding:8px 12px; }
+  .hub-tile-more{ flex:1; background:var(--surface-2); color:var(--ink-soft); border:1px solid var(--line); }
+  .hub-tile-more:hover{ color:var(--ink); border-color:var(--gold); }
+  .hub-tile-view{ flex:1; background:var(--gold); color:#fff; border:1px solid var(--gold); }
+  .hub-tile-view:hover{ filter:brightness(1.06); }
+
+  /* ============ Customer: hub dashboard hero + KPIs ============ */
+  .hub-hero{
+    background:linear-gradient(120deg, var(--teal) 0%, var(--gold-ink) 100%); color:#fff;
+    border-radius:20px; padding:22px 26px; margin-bottom:16px; box-shadow:var(--shadow-lift);
+  }
+  .hub-hero h2{ margin:0; font-size:21px; color:#fff; letter-spacing:-.01em; }
+  .hub-hero p{ margin:5px 0 0; opacity:.9; font-size:13px; }
+  .hub-kpis{ display:grid; grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:10px; margin-bottom:18px; }
+  .hub-kpi{ background:var(--surface); border:1px solid var(--line); border-left:4px solid var(--gold); border-radius:12px; padding:12px 14px; box-shadow:var(--shadow); }
+  .hub-kpi .k{ font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-soft); font-weight:800; }
+  .hub-kpi .v{ font-size:18px; font-weight:800; color:var(--ink); margin-top:3px; line-height:1.2; }
+
+  /* ============ Customer: hub profile (full details) page ============ */
+  .profile-card{ background:var(--surface); border:1px solid var(--line); border-radius:18px; padding:20px 22px; box-shadow:var(--shadow); margin-bottom:14px; }
+  .profile-section{ padding:12px 0; border-top:1px solid var(--line); }
+  .profile-section:first-child{ border-top:none; padding-top:0; }
+  .profile-section .lbl{ font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-soft); font-weight:800; margin-bottom:5px; }
+  .review-mini{ font-size:12.5px; padding:8px 0; border-top:1px solid var(--line); }
+  .review-mini:first-child{ border-top:none; }
+  .review-mini .stars{ color:var(--gold-ink); font-weight:800; margin-right:6px; }
 
   footer.note{ text-align:center; color:var(--ink-soft); font-size:11.5px; margin-top:30px; line-height:1.7; }
 </style>
@@ -1146,6 +1169,7 @@
 
   function customerView(){
     if(state.ui.customerStep === "hubs") return renderHubGrid();
+    if(state.ui.customerStep === "hubProfile") return renderHubProfile();
     if(state.ui.customerStep === "shop") return renderShopPage();
     return renderWelcome();
   }
@@ -1177,46 +1201,87 @@
 
   function renderHubGrid(){
     var cs = computeShopState();
-    var ahead = activeOrdersAheadOf(Infinity);
-    var eta = computeEta(ahead);
     var special = state.menu.find(function(m){ return m.id === state.shop.todaySpecialId; });
-    var metaBits = [];
-    metaBits.push(cs.state === "OPEN" ? ("⏱ " + eta.min + "–" + eta.max + " min") : (cs.state === "HOLIDAY" ? "On leave" : "Closed"));
-    metaBits.push(state.shop.deliveryEnabled ? "Delivery available" : "Pickup only");
-
-    var timingsBits = [];
-    var hoursText = formatShopHours(state.shop);
-    if(hoursText) timingsBits.push("🕒 " + hoursText);
-    var weeklyOff = (state.shop.weeklyHolidays||[]).slice().sort();
-    if(weeklyOff.length){
-      timingsBits.push("Closed " + weeklyOff.map(function(d){ return WEEKDAY_SHORT[d]; }).join("/"));
-    }
-
+    var metaBits = [state.shop.deliveryEnabled ? "🛵 Delivery available" : "🚶 Pickup only"];
     var ratingSummary = shopRatingSummary();
     var ratingBadgeHtml = ratingSummary ? ('<span class="rating-badge">⭐ ' + ratingSummary.avg.toFixed(1) + ' (' + ratingSummary.count + ')</span>') : '';
-
     var hubVisible = state.shop.visibleOnMainPage !== false;
+    var statusText = cs.state === "OPEN" ? "Open now" : (cs.state === "HOLIDAY" ? "On leave" : "Closed");
+
     var html = '<button class="crumb" id="btn-to-welcome">← DSK Food Hub</button>';
-    html += '<h2 class="display" style="font-size:22px;margin-bottom:2px">Choose a food hub</h2>';
-    html += '<p class="sub" style="margin-bottom:6px">One hub live so far — more will appear here as they join.</p>';
+    html += '<div class="hub-hero"><h2>Choose a food hub</h2><p>Pick a hub near you, check what\'s open, then order ahead and pay when you collect or receive it.</p></div>';
+
+    html += '<div class="hub-kpis">';
+    html += '<div class="hub-kpi"><div class="k">Hubs live today</div><div class="v">' + (hubVisible?1:0) + '</div></div>';
+    html += '<div class="hub-kpi"><div class="k">Status</div><div class="v">' + statusText + '</div></div>';
+    html += '<div class="hub-kpi"><div class="k">Fulfilment</div><div class="v" style="font-size:14px">' + (state.shop.deliveryEnabled?"Delivery + pickup":"Pickup only") + '</div></div>';
+    html += '<div class="hub-kpi"><div class="k">Rating</div><div class="v" style="font-size:14px">' + (ratingSummary ? ('⭐ ' + ratingSummary.avg.toFixed(1) + ' (' + ratingSummary.count + ')') : 'No ratings yet') + '</div></div>';
+    html += '</div>';
+
     html += '<div class="hub-grid">';
     if(hubVisible){
-      html += '<button class="hub-tile" data-open-hub="1">' +
+      html += '<div class="hub-tile">' +
         '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' + badgeForStatus(cs) + ratingBadgeHtml + '</div>' +
         '<h3>' + esc(state.shop.name) + '</h3>' +
         '<p class="local">' + esc(state.shop.local) + '</p>' +
-        (state.shop.address ? ('<div class="hub-tile-address">📍 ' + esc(state.shop.address) + '</div>') : '') +
-        (state.shop.addressLocal ? ('<div class="hub-tile-address-local">' + esc(state.shop.addressLocal) + '</div>') : '') +
-        (timingsBits.length ? ('<div class="hub-tile-hours">' + timingsBits.join(" · ") + '</div>') : '') +
         '<div class="hub-tile-meta">' + metaBits.join(" · ") + '</div>' +
         (special ? ('<div class="hub-tile-special">★ Today: ' + esc(special.name) + ' ' + money(special.price) + '</div>') : '') +
-        '<div class="hub-tile-cta">View menu →</div>' +
-        '</button>';
+        '<div class="hub-tile-actions">' +
+          '<button class="hub-tile-more" data-open-hub-profile="1">More details</button>' +
+          '<button class="hub-tile-view" data-open-hub="1">View menu →</button>' +
+        '</div>' +
+        '</div>';
     } else {
       html += '<div class="empty-note">No hubs available right now — check back later.</div>';
     }
     html += '<div class="hub-tile-ghost">More food hubs will show up here as your community adds them</div>';
     html += '</div>';
+    return html;
+  }
+
+  function renderHubProfile(){
+    var cs = computeShopState();
+    var ratingSummary = shopRatingSummary();
+    var hoursText = formatShopHours(state.shop);
+    var weeklyOff = (state.shop.weeklyHolidays||[]).slice().sort();
+    var custMapsLink = mapsLink(), custCallLink = telLink(state.shop.ownerWhatsapp);
+
+    var html = '<button class="crumb" id="btn-to-hubs">← All food hubs</button>';
+    html += '<div class="profile-card">';
+    html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">' + badgeForStatus(cs) +
+      (ratingSummary ? ('<span class="rating-badge">⭐ ' + ratingSummary.avg.toFixed(1) + ' (' + ratingSummary.count + ')</span>') : '') + '</div>';
+    html += '<h2 class="display" style="font-size:21px;margin-bottom:2px">' + esc(state.shop.name) + '</h2>';
+    html += '<p class="sub" style="margin-bottom:0">' + esc(state.shop.local) + '</p>';
+
+    html += '<div class="profile-section"><div class="lbl">Address</div>' +
+      (state.shop.address ? ('<div>📍 ' + esc(state.shop.address) + '</div>') : '<div class="hint">Not added yet.</div>') +
+      (state.shop.addressLocal ? ('<div class="hint" style="margin-top:2px">' + esc(state.shop.addressLocal) + '</div>') : '') +
+      '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">' +
+        (custCallLink ? ('<a class="btn btn-sm" href="' + esc(custCallLink) + '" style="text-decoration:none">📞 Call shop</a>') : '') +
+        (custMapsLink ? ('<a class="btn btn-sm" href="' + esc(custMapsLink) + '" target="_blank" rel="noopener" style="text-decoration:none">📍 Get directions</a>') : '') +
+      '</div></div>';
+
+    html += '<div class="profile-section"><div class="lbl">Hours</div>' +
+      (hoursText ? ('<div>🕒 ' + esc(hoursText) + '</div>') : '<div class="hint">Not set.</div>') +
+      (weeklyOff.length ? ('<div class="hint" style="margin-top:2px">Closed every ' + weeklyOff.map(function(d){ return WEEKDAY_SHORT[d]; }).join("/") + '</div>') : '') +
+      (cs.state !== "OPEN" && cs.reason ? ('<div class="hint" style="margin-top:2px">' + esc(cs.reason) + '</div>') : '') +
+      '</div>';
+
+    html += '<div class="profile-section"><div class="lbl">Fulfilment</div><div>' +
+      (state.shop.deliveryEnabled ? "🛵 Home delivery available, or 🚶 pickup at the counter." : "🚶 Pickup only — no delivery right now.") +
+      '</div></div>';
+
+    if(ratingSummary){
+      var recent = state.reviews.slice().sort(function(a,b){ return b.createdAt - a.createdAt; }).slice(0,3);
+      html += '<div class="profile-section"><div class="lbl">Recent reviews</div>';
+      recent.forEach(function(r){
+        html += '<div class="review-mini"><span class="stars">' + "★".repeat(r.rating) + '</span>' + esc(r.comment || "(no comment)") + '</div>';
+      });
+      html += '</div>';
+    }
+
+    html += '<button class="btn btn-primary" data-full id="btn-open-hub" style="margin-top:14px">View menu &amp; order →</button>';
+    html += '</div>'; // profile-card
     return html;
   }
 
@@ -1307,7 +1372,7 @@
       '</div>';
 
     if(!terminal){
-      var stageLabels = ["Placed","Accepted","Preparing","Ready","Done"];
+      var stageLabels = ["Placed","Accepted","Preparing","Ready",completeLabel(order)];
       html += '<div class="stepper-track">';
       stages.forEach(function(s, i){ html += '<div class="seg ' + (i<idx?"done":(i===idx?"now":"")) + '"></div>'; });
       html += '</div>';
@@ -1825,7 +1890,7 @@
 
   var STAGE_ORDER = ["PENDING","ACCEPTED","PREPARING","READY","COMPLETED"];
   var STAGE_LABEL = { PENDING:"Placed", ACCEPTED:"Accepted", PREPARING:"Preparing", READY:"Ready", COMPLETED:"Done" };
-  function completeLabel(o){ return o.fulfilment === "DELIVERY" ? "Home delivered" : "Completed"; }
+  function completeLabel(o){ return o.fulfilment === "DELIVERY" ? "Home Delivered" : "Collected at Hub"; }
   function renderStageTimeline(o){
     if(o.status === "REJECTED" || o.status === "CANCELLED"){
       var bt = o.stageTimes && o.stageTimes[o.status];
@@ -1953,6 +2018,8 @@
     if(t.id === "btn-to-welcome"){ state.ui.customerStep = "welcome"; persist(); render(); return; }
     if(t.id === "btn-to-hubs"){ state.ui.customerStep = "hubs"; persist(); render(); return; }
     if(attr(t,"data-open-hub")){ state.ui.customerStep = "shop"; persist(); render(); return; }
+    if(attr(t,"data-open-hub-profile")){ state.ui.customerStep = "hubProfile"; persist(); render(); return; }
+    if(t.id === "btn-open-hub"){ state.ui.customerStep = "shop"; persist(); render(); return; }
 
     var MAX_QTY_PER_ITEM = 20;
     if((id = attr(t,"data-add"))){
