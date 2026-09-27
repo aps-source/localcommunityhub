@@ -955,11 +955,15 @@
     }
     if(o.status === "PREPARING") return "Your order " + o.tokenDisplay + " at " + state.shop.name + " is being prepared.";
     if(o.status === "READY") return "Your token " + o.tokenDisplay + " is READY at " + state.shop.name + "! " +
-      (o.fulfilment === "DELIVERY" ? "Your delivery is on the way." : "Please collect at the counter.") + " Amount due: " + money(o.total) + ".";
+      (o.fulfilment === "DELIVERY" ? "Your delivery is on the way. " : "Please collect at the counter. ") +
+      (o.paymentStatus === "PAID" ? "Already paid — thank you!" : "Amount due: " + money(o.total) + ".");
     if(o.status === "REJECTED") return "Sorry, your order " + o.tokenDisplay + " at " + state.shop.name + " could not be accepted" + (o.rejectReason ? (": " + o.rejectReason) : ".");
-    if(o.status === "COMPLETED") return o.fulfilment === "DELIVERY" ?
-      ("Your order " + o.tokenDisplay + " has been delivered! Thanks for ordering from " + state.shop.name + ".") :
-      ("Your order " + o.tokenDisplay + " is completed! Please collect at " + state.shop.name + ".");
+    if(o.status === "COMPLETED"){
+      var due = o.paymentStatus !== "PAID" ? (" Amount due: " + money(o.total) + ".") : "";
+      return (o.fulfilment === "DELIVERY" ?
+        ("Your order " + o.tokenDisplay + " has been delivered! Thanks for ordering from " + state.shop.name + ".") :
+        ("Your order " + o.tokenDisplay + " is completed! Thanks for ordering from " + state.shop.name + ".")) + due;
+    }
     return "Update on your order " + o.tokenDisplay + " at " + state.shop.name + ": " + o.status;
   }
 
