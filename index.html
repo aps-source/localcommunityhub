@@ -956,7 +956,9 @@
     if(o.status === "READY") return "Your token " + o.tokenDisplay + " is READY at " + state.shop.name + "! " +
       (o.fulfilment === "DELIVERY" ? "Your delivery is on the way." : "Please collect at the counter.") + " Amount due: " + money(o.total) + ".";
     if(o.status === "REJECTED") return "Sorry, your order " + o.tokenDisplay + " at " + state.shop.name + " could not be accepted" + (o.rejectReason ? (": " + o.rejectReason) : ".");
-    if(o.status === "COMPLETED") return "Your order " + o.tokenDisplay + " is completed! Please collect at " + state.shop.name + ".";
+    if(o.status === "COMPLETED") return o.fulfilment === "DELIVERY" ?
+      ("Your order " + o.tokenDisplay + " has been delivered! Thanks for ordering from " + state.shop.name + ".") :
+      ("Your order " + o.tokenDisplay + " is completed! Please collect at " + state.shop.name + ".");
     return "Update on your order " + o.tokenDisplay + " at " + state.shop.name + ": " + o.status;
   }
 
@@ -1246,6 +1248,7 @@
     html += '<div class="section-title">Menu</div>';
     if(state.menu.length === 0) html += '<div class="empty-note">No items on the menu right now.</div>';
     state.menu.forEach(function(item){
+      if(item.showOnMenu === false) return;
       var qty = state.ui.cart[item.id] || 0;
       var isSpecial = item.id === state.shop.todaySpecialId;
       html += '<div class="menu-row">';
@@ -1597,6 +1600,7 @@
       html += '<div><div class="nm">' + esc(m.name) + (m.occasion ? ' <span class="occasion-flag">🎉 ' + esc(m.occasion) + '</span>' : '') + '</div><div class="lc">' + esc(m.local) + '</div></div>';
       html += '<input type="number" min="0" step="5" class="mono" data-price="' + m.id + '" value="' + m.price + '">';
       html += '<label class="switch" title="Available"><input type="checkbox" data-avail="' + m.id + '" ' + (m.available?'checked':'') + '><span class="track"></span></label>';
+      html += '<label class="switch" title="Show on menu"><input type="checkbox" data-visible="' + m.id + '" ' + (m.showOnMenu!==false?'checked':'') + '><span class="track"></span></label>';
       html += '<button class="btn btn-ghost btn-sm" data-remove-item="' + m.id + '" title="Remove item">🗑</button>';
       html += '</div>';
     });
@@ -1801,6 +1805,7 @@
 
   var STAGE_ORDER = ["PENDING","ACCEPTED","PREPARING","READY","COMPLETED"];
   var STAGE_LABEL = { PENDING:"Placed", ACCEPTED:"Accepted", PREPARING:"Preparing", READY:"Ready", COMPLETED:"Done" };
+  function completeLabel(o){ return o.fulfilment === "DELIVERY" ? "Home delivered" : "Completed"; }
   function renderStageTimeline(o){
     if(o.status === "REJECTED" || o.status === "CANCELLED"){
       var bt = o.stageTimes && o.stageTimes[o.status];
@@ -1811,7 +1816,8 @@
     STAGE_ORDER.forEach(function(s, i){
       var reached = i <= idx;
       var t = o.stageTimes && o.stageTimes[s];
-      html += '<span class="stage-dot' + (reached?' reached':'') + (i===idx?' current':'') + '">' + STAGE_LABEL[s] + (reached && t ? ('<b>'+fmtTime(t)+'</b>') : '') + '</span>';
+      var label = s === "COMPLETED" ? completeLabel(o) : STAGE_LABEL[s];
+      html += '<span class="stage-dot' + (reached?' reached':'') + (i===idx?' current':'') + '">' + label + (reached && t ? ('<b>'+fmtTime(t)+'</b>') : '') + '</span>';
       if(i < STAGE_ORDER.length-1) html += '<span class="stage-sep' + (i<idx?' done':'') + '"></span>';
     });
     html += '</div>';
@@ -1850,7 +1856,7 @@
       html += '<button class="btn btn-owner btn-sm" data-ready="' + o.id + '">Mark ready</button>';
     } else if(o.status === "READY"){
       if(o.paymentStatus !== "PAID") html += '<button class="btn btn-sm" data-paid="' + o.id + '">Mark paid</button>';
-      html += '<button class="btn btn-owner btn-sm" data-complete="' + o.id + '">Complete</button>';
+      html += '<button class="btn btn-owner btn-sm" data-complete="' + o.id + '">' + (o.fulfilment==="DELIVERY"?"Mark delivered":"Complete") + '</button>';
     }
     html += '</div>';
 
@@ -1916,7 +1922,7 @@
       if(!(nPrice >= 0)){ toast("Give the new item a valid price."); return; }
       var newItem = {
         id: uid(), name: nName, local: (state.ui.newItemLocal||"").trim(),
-        price: nPrice, available: true, occasion: (state.ui.newItemOccasion||"").trim()
+        price: nPrice, available: true, showOnMenu: true, occasion: (state.ui.newItemOccasion||"").trim()
       };
       state.ui.newItemName = ""; state.ui.newItemLocal = ""; state.ui.newItemPrice = ""; state.ui.newItemOccasion = "";
       mutateMenuCloud(function(arr){ return arr.concat([newItem]); });
@@ -2094,6 +2100,16 @@
         if(it) it.available = newAvail;
         return arr;
       });
+      return;
+    }
+    if((id = attr(t,"data-visible"))){
+      var newVisible = t.checked;
+      mutateMenuCloud(function(arr){
+        var it = arr.find(function(m){ return m.id === id; });
+        if(it) it.showOnMenu = newVisible;
+        return arr;
+      });
+      toast(newVisible ? "Item shown on menu" : "Item hidden from menu");
       return;
     }
   }
