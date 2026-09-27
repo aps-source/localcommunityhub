@@ -380,7 +380,9 @@
   .stat-tile .lbl{ font-size:11px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.06em; margin-top:3px; }
 
   /* ============ Owner: tabs + orders page ============ */
-  .owner-tabs{ display:flex; gap:6px; margin-top:18px; }
+  .owner-hub-label{ font-size:13px; color:var(--ink-soft); margin-top:14px; }
+  .owner-hub-label strong{ color:var(--ink); }
+  .owner-tabs{ display:flex; gap:6px; margin-top:10px; }
   .owner-tab-btn{
     border:1px solid var(--line); background:var(--surface); color:var(--ink-soft); font-weight:700; font-size:13.5px;
     padding:9px 16px; border-radius:10px; cursor:pointer;
@@ -611,59 +613,71 @@
   function uid(){ return Math.random().toString(36).slice(2,9) + Date.now().toString(36).slice(-4); }
   function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]; }); }
 
+  // Generic fallback values for any field a hub's own record is missing — forward
+  // compatibility when a new shop field gets added later, same role DEFAULT_STATE.shop
+  // used to play back when this app only had one hub.
+  var SHOP_DEFAULTS = {
+    name: "", local: "", address: "", addressLocal: "", mapsUrl: "",
+    tokenPrefix: "HUB", visibleOnMainPage: true, isOpenManual: true,
+    closureReason: "", holidayFrom: "", holidayTo: "", holidayReason: "",
+    deliveryEnabled: true, parallelSlots: 2, avgPrepMinutes: 8, todaySpecialId: "",
+    ownerWhatsapp: "", upiId: "", upiPayeeName: "", qrLogoDataUrl: "", staffPin: "1234",
+    openTime1: "", closeTime1: "", openTime2: "", closeTime2: "",
+    weeklyHolidays: [], voiceAnnounce: true
+  };
+  function freshHub(shop, menu){
+    return { shop: Object.assign({}, SHOP_DEFAULTS, shop), menu: menu || [], counter: { date: todayStr(), next: 1 }, orders: [], reviews: [] };
+  }
   var DEFAULT_STATE = {
-    hub: { name: "DSK Food Hub" },
-    shop: {
-      name: "Shri Swami Samartha Bhakri Kendra",
-      local: "श्री स्वामी समर्थ भाकरी केंद्र",
-      address: "Survey No. 126, Shop No. H-17, Bhaskara, D.S.K. Vishwa, Pune - 411041",
-      addressLocal: "पत्ता - सर्व्हे नं. १२६, शॉप नं. एच-१७, भास्करा डि.एस.के. विश्व, पुणे-४११०४१",
-      mapsUrl: "",
-      tokenPrefix: "SSB",
-      visibleOnMainPage: true,
-      isOpenManual: true,
-      closureReason: "",
-      holidayFrom: "",
-      holidayTo: "",
-      holidayReason: "",
-      deliveryEnabled: true,
-      parallelSlots: 2,
-      avgPrepMinutes: 8,
-      todaySpecialId: "puranpoli",
-      ownerWhatsapp: "",
-      upiId: "",
-      upiPayeeName: "",
-      qrLogoDataUrl: "",
-      staffPin: "1234",
-      openTime1: "09:00",
-      closeTime1: "13:00",
-      openTime2: "17:00",
-      closeTime2: "21:00",
-      weeklyHolidays: [],
-      voiceAnnounce: true
+    hub: { name: "DSK Community Hub" },
+    hubs: {
+      ssb: freshHub({
+        name: "Shri Swami Samartha Bhakri Kendra",
+        local: "श्री स्वामी समर्थ भाकरी केंद्र",
+        address: "Survey No. 126, Shop No. H-17, Bhaskara, D.S.K. Vishwa, Pune - 411041",
+        addressLocal: "पत्ता - सर्व्हे नं. १२६, शॉप नं. एच-१७, भास्करा डि.एस.के. विश्व, पुणे-४११०४१",
+        tokenPrefix: "SSB",
+        todaySpecialId: "puranpoli",
+        openTime1: "09:00", closeTime1: "13:00", openTime2: "17:00", closeTime2: "21:00"
+      }, [
+        {id:"tandul",    name:"Tandul Bhakri", local:"तांदूळ भाकरी", price:25, available:true, occasion:""},
+        {id:"jowar",     name:"Jowar Bhakri",  local:"ज्वारी भाकरी",  price:25, available:true, occasion:""},
+        {id:"bajra",     name:"Bajra Bhakri",  local:"बाजरी भाकरी",  price:25, available:true, occasion:""},
+        {id:"nachni",    name:"Nachni Bhakri", local:"नाचणी भाकरी",  price:30, available:true, occasion:""},
+        {id:"chapati",   name:"Chapati",       local:"चपाती",       price:10, available:true, occasion:""},
+        {id:"puranpoli", name:"Puran Poli",    local:"पुरण पोळी",    price:45, available:true, occasion:""},
+        {id:"modak",     name:"Modak",         local:"मोदक",        price:45, available:true, occasion:""}
+      ])
     },
-    menu: [
-      {id:"tandul",    name:"Tandul Bhakri", local:"तांदूळ भाकरी", price:25, available:true, occasion:""},
-      {id:"jowar",     name:"Jowar Bhakri",  local:"ज्वारी भाकरी",  price:25, available:true, occasion:""},
-      {id:"bajra",     name:"Bajra Bhakri",  local:"बाजरी भाकरी",  price:25, available:true, occasion:""},
-      {id:"nachni",    name:"Nachni Bhakri", local:"नाचणी भाकरी",  price:30, available:true, occasion:""},
-      {id:"chapati",   name:"Chapati",       local:"चपाती",       price:10, available:true, occasion:""},
-      {id:"puranpoli", name:"Puran Poli",    local:"पुरण पोळी",    price:45, available:true, occasion:""},
-      {id:"modak",     name:"Modak",         local:"मोदक",        price:45, available:true, occasion:""}
-    ],
-    counter: { date: todayStr(), next: 1 },
-    orders: [],
-    reviews: [],
     ui: { role:"customer", ownerUnlocked:false, showPin:false, pinInput:"", pinError:"",
           customerStep:"welcome", cart:{}, fulfilment:"PICKUP", name:"", phone:"", address:"", notes:"",
-          activeOrderId:null, rejecting:null, resetArm:false,
+          activeOrderId:null, activeHubId:null, ownerHubId:null, rejecting:null, resetArm:false,
           ownerTab:"orders", newItemName:"", newItemLocal:"", newItemPrice:"", newItemOccasion:"",
           customerLoggedIn:false, showCustLogin:false, custLoginName:"", custLoginPhone:"", custLoginError:"",
-          lastSeenOrderTs: null, lastSeenCustomerActionTs: null, bestSellerPeriod: "today", reviewDraftRating: 0, reviewDraftComment: "", pushEnabledHere: false,
+          lastSeenOrderTsByHub: {}, lastSeenCustomerActionTsByHub: {}, bestSellerPeriod: "today", reviewDraftRating: 0, reviewDraftComment: "", pushEnabledHere: false,
           editingOrderId: null, cancelling: null,
           custVoiceAlert: true, voiceLastOrderId: null, voiceLastStatus: null,
           myOrderIds: [], hubFilterOpenOnly: false, hubFulfilmentFilter: "" }
   };
+
+  // Which hub a given customer/owner action applies to — the owner console only ever
+  // touches the hub its PIN unlocked; a customer's own actions apply to whichever hub
+  // they most recently opened. currentHub() is the single thing nearly every render
+  // function and mutator reads/writes through instead of one hardcoded shop/menu/orders.
+  function currentHubId(){ return state.ui.role === "owner" ? state.ui.ownerHubId : state.ui.activeHubId; }
+  function currentHub(){
+    return state.hubs[currentHubId()] || state.hubs[Object.keys(state.hubs)[0]] || freshHub({});
+  }
+  // Every order id (a Firebase push key) is globally unique regardless of which hub it
+  // belongs to, so "which hub is this order in" is always answerable by a scan — small
+  // data at this app's scale, so no need to also store a redundant hubId on the order.
+  function findHubOfOrder(orderId){
+    var ids = Object.keys(state.hubs);
+    for(var i=0; i<ids.length; i++){
+      if(state.hubs[ids[i]].orders.some(function(o){ return o.id === orderId; })) return ids[i];
+    }
+    return null;
+  }
 
   function load(){
     try{
@@ -672,11 +686,15 @@
       var s = JSON.parse(raw);
       // shallow-merge defaults for forward compatibility
       s.hub = s.hub || DEFAULT_STATE.hub;
-      s.shop = Object.assign({}, DEFAULT_STATE.shop, s.shop || {});
-      s.menu = s.menu && s.menu.length ? s.menu : DEFAULT_STATE.menu;
-      s.counter = s.counter || DEFAULT_STATE.counter;
-      s.orders = s.orders || [];
-      s.reviews = s.reviews || [];
+      s.hubs = s.hubs && Object.keys(s.hubs).length ? s.hubs : JSON.parse(JSON.stringify(DEFAULT_STATE.hubs));
+      Object.keys(s.hubs).forEach(function(hid){
+        var h = s.hubs[hid];
+        h.shop = Object.assign({}, SHOP_DEFAULTS, h.shop || {});
+        h.menu = h.menu || [];
+        h.counter = h.counter || { date: todayStr(), next: 1 };
+        h.orders = h.orders || [];
+        h.reviews = h.reviews || [];
+      });
       s.ui = Object.assign({}, DEFAULT_STATE.ui, s.ui || {});
       return s;
     }catch(e){ return JSON.parse(JSON.stringify(DEFAULT_STATE)); }
@@ -684,8 +702,11 @@
   var state = load();
   (function migrate(){
     if(state.ui.activeOrderId){
-      var o = state.orders.find(function(x){ return x.id === state.ui.activeOrderId; });
-      if(o && state.ui.customerStep === "welcome") state.ui.customerStep = "shop";
+      var hid = findHubOfOrder(state.ui.activeOrderId);
+      if(hid){
+        state.ui.activeHubId = hid;
+        if(state.ui.customerStep === "welcome") state.ui.customerStep = "shop";
+      }
       // Carry the order this device already had open into the new device-scoped history list,
       // so upgrading to the fix above doesn't make an in-progress order vanish from it.
       if((state.ui.myOrderIds||[]).indexOf(state.ui.activeOrderId) === -1){
@@ -697,9 +718,8 @@
     if(!state.ui.ownerUnlocked) state.ui.role = "customer";
     state.ui.showPin = false; state.ui.pinInput = ""; state.ui.pinError = "";
     state.ui.showCustLogin = false; state.ui.custLoginError = "";
-    // Start the "new order" clock at first load so pre-existing orders never get announced.
-    if(state.ui.lastSeenOrderTs == null) state.ui.lastSeenOrderTs = nowMs();
-    if(state.ui.lastSeenCustomerActionTs == null) state.ui.lastSeenCustomerActionTs = nowMs();
+    // checkNewOrdersAndAnnounce() lazily starts each hub's own "new order" clock the
+    // first time this device checks it, so pre-existing orders never get announced.
   })();
   function persist(){
     try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){}
@@ -748,8 +768,8 @@
 
   // Precedence, matching how a real hub's status is decided:
   // holiday dates > manual emergency closure > weekly off day > opening hours > open.
-  function computeShopState(){
-    var shop = state.shop, today = todayStr();
+  function computeShopState(shop){
+    var today = todayStr();
     if(shop.holidayFrom && shop.holidayTo && today >= shop.holidayFrom && today <= shop.holidayTo){
       return { state:"HOLIDAY", reason: shop.holidayReason, until: shop.holidayTo };
     }
@@ -769,7 +789,7 @@
 
   function todaysOrders(){
     var today = todayStr();
-    return state.orders.filter(function(o){ return o.serviceDate === today; });
+    return currentHub().orders.filter(function(o){ return o.serviceDate === today; });
   }
   var ACTIVE_STATUSES = ["PENDING","ACCEPTED","PREPARING"];
   function activeOrdersAheadOf(seq){
@@ -778,24 +798,24 @@
     }).length;
   }
   function computeEta(activeAhead){
-    var slots = Math.max(1, state.shop.parallelSlots||2);
-    var avg = Math.max(1, state.shop.avgPrepMinutes||8);
+    var slots = Math.max(1, currentHub().shop.parallelSlots||2);
+    var avg = Math.max(1, currentHub().shop.avgPrepMinutes||8);
     var minutes = Math.ceil((activeAhead+1)/slots) * avg;
     return { min: minutes, max: minutes + Math.max(4, Math.round(minutes*0.4)) };
   }
 
   function allocateToken(){
     var today = todayStr();
-    if(state.counter.date !== today){ state.counter = { date: today, next: 1 }; }
-    var seq = state.counter.next;
-    state.counter.next = seq + 1;
+    if(currentHub().counter.date !== today){ currentHub().counter = { date: today, next: 1 }; }
+    var seq = currentHub().counter.next;
+    currentHub().counter.next = seq + 1;
     return seq;
   }
   // Atomic across every device at once — Firebase retries the transaction itself if two
   // customers submit within the same instant, so nobody can ever be handed the same token.
   function allocateTokenCloud(callback){
     var today = todayStr();
-    cloud.db.ref("counter").transaction(function(current){
+    cloud.db.ref("hubs/" + currentHubId() + "/counter").transaction(function(current){
       if(!current || current.date !== today) return { date: today, next: 2 };
       return { date: current.date, next: (current.next||1) + 1 };
     }, function(error, committed, snapshot){
@@ -812,14 +832,14 @@
   function tokenDisplay(seq){
     var now = new Date(nowMs());
     var dateCode = MONTH_INITIALS[now.getMonth()] + now.getDate() + WEEKDAY_INITIALS[now.getDay()];
-    return state.shop.tokenPrefix + "-" + dateCode + "-" + String(seq).padStart(3,"0");
+    return currentHub().shop.tokenPrefix + "-" + dateCode + "-" + String(seq).padStart(3,"0");
   }
 
   // Optimistic local update (instant UI) + write-through to Firebase when connected.
   function updateShop(patch){
-    Object.assign(state.shop, patch);
+    Object.assign(currentHub().shop, patch);
     if(cloud.enabled){
-      cloud.db.ref("shop").update(patch).catch(function(){
+      cloud.db.ref("hubs/" + currentHubId() + "/shop").update(patch).catch(function(){
         toast("Couldn't save that change — check your connection and try again.");
       });
     }
@@ -831,10 +851,10 @@
   // owner devices editing the menu at the same moment safe — a transaction re-reads and
   // re-applies rather than blindly overwriting with a snapshot that might already be stale.
   function mutateMenuCloud(mutator){
-    state.menu = mutator(state.menu.slice());
+    currentHub().menu = mutator(currentHub().menu.slice());
     persist(); render();
     if(cloud.enabled){
-      cloud.db.ref("menu").transaction(function(current){
+      cloud.db.ref("hubs/" + currentHubId() + "/menu").transaction(function(current){
         return mutator((current || []).slice());
       }, function(error){
         if(error) toast("Could not save the menu change — try again.");
@@ -852,11 +872,11 @@
     cur[parts[parts.length-1]] = value;
   }
   function patchOrderCloud(id, patch){
-    var o = state.orders.find(function(x){ return x.id === id; });
+    var o = currentHub().orders.find(function(x){ return x.id === id; });
     if(o) Object.keys(patch).forEach(function(k){ setDeep(o, k, patch[k]); });
     if(cloud.enabled){
       var multi = {};
-      Object.keys(patch).forEach(function(k){ multi["orders/" + id + "/" + k] = patch[k]; });
+      Object.keys(patch).forEach(function(k){ multi["hubs/" + currentHubId() + "/orders/" + id + "/" + k] = patch[k]; });
       cloud.db.ref().update(multi).catch(function(){
         toast("Couldn't save that order update — check your connection and try again.");
       });
@@ -885,9 +905,9 @@
     return n ? ("tel:+" + n) : "";
   }
   function mapsLink(){
-    var custom = (state.shop.mapsUrl||"").trim();
+    var custom = (currentHub().shop.mapsUrl||"").trim();
     if(custom) return custom;
-    var q = (state.shop.address||state.shop.name||"").trim();
+    var q = (currentHub().shop.address||currentHub().shop.name||"").trim();
     return q ? ("https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(q)) : "";
   }
   function waLink(rawNumber, text){
@@ -899,9 +919,9 @@
   /* ---------- UPI QR (static deep link — the owner still confirms receipt manually,
      same trust model as marking cash paid; there's no gateway verifying this) ---------- */
   function upiQueryString(order){
-    var vpa = (state.shop.upiId||"").trim();
+    var vpa = (currentHub().shop.upiId||"").trim();
     if(!vpa) return "";
-    var payee = (state.shop.upiPayeeName||state.shop.name||"").trim();
+    var payee = (currentHub().shop.upiPayeeName||currentHub().shop.name||"").trim();
     // NPCI's own spec examples always show two decimal places (e.g. "70.00") — some UPI
     // apps are strict about this even though a bare integer is technically valid too.
     var amount = Number(order.total || 0).toFixed(2);
@@ -928,7 +948,7 @@
     if(!img || !window.QRious) return;
     var uri = img.getAttribute("data-uri");
     if(!uri) return;
-    var logo = state.shop.qrLogoDataUrl;
+    var logo = currentHub().shop.qrLogoDataUrl;
     if(!logo){
       try{ new QRious({ element: img, value: uri, size: 200, level: "M" }); }catch(e){}
       return;
@@ -989,7 +1009,7 @@
   function orderSummaryText(o){
     var lines = o.items.map(function(l){ return "- " + l.qty + "x " + l.name + " (" + money(l.price) + ")"; }).join("\n");
     var addr = o.fulfilment === "DELIVERY" ? ("\nDeliver to: " + o.address) : "";
-    return "New order — " + state.shop.name + "\n" +
+    return "New order — " + currentHub().shop.name + "\n" +
       "Token: " + o.tokenDisplay + "\n" +
       (o.fulfilment === "DELIVERY" ? "Home delivery" : "Pickup") + "\n" +
       lines + "\n" +
@@ -1000,20 +1020,20 @@
   function statusUpdateText(o){
     if(o.status === "ACCEPTED"){
       var ahead = activeOrdersAheadOf(o.tokenSeq), eta = computeEta(ahead);
-      return "Hi " + o.name + ", your order " + o.tokenDisplay + " at " + state.shop.name + " is accepted. Estimated wait " + eta.min + "-" + eta.max + " min. We'll message when it's ready.";
+      return "Hi " + o.name + ", your order " + o.tokenDisplay + " at " + currentHub().shop.name + " is accepted. Estimated wait " + eta.min + "-" + eta.max + " min. We'll message when it's ready.";
     }
-    if(o.status === "PREPARING") return "Your order " + o.tokenDisplay + " at " + state.shop.name + " is being prepared.";
-    if(o.status === "READY") return "Your token " + o.tokenDisplay + " is READY at " + state.shop.name + "! " +
+    if(o.status === "PREPARING") return "Your order " + o.tokenDisplay + " at " + currentHub().shop.name + " is being prepared.";
+    if(o.status === "READY") return "Your token " + o.tokenDisplay + " is READY at " + currentHub().shop.name + "! " +
       (o.fulfilment === "DELIVERY" ? "Your delivery is on the way. " : "Please collect at the counter. ") +
       (o.paymentStatus === "PAID" ? "Already paid — thank you!" : "Amount due: " + money(o.total) + ".");
-    if(o.status === "REJECTED") return "Sorry, your order " + o.tokenDisplay + " at " + state.shop.name + " could not be accepted" + (o.rejectReason ? (": " + o.rejectReason) : ".");
+    if(o.status === "REJECTED") return "Sorry, your order " + o.tokenDisplay + " at " + currentHub().shop.name + " could not be accepted" + (o.rejectReason ? (": " + o.rejectReason) : ".");
     if(o.status === "COMPLETED"){
       var due = o.paymentStatus !== "PAID" ? (" Amount due: " + money(o.total) + ".") : "";
       return (o.fulfilment === "DELIVERY" ?
-        ("Your order " + o.tokenDisplay + " has been delivered! Thanks for ordering from " + state.shop.name + ".") :
-        ("Your order " + o.tokenDisplay + " is completed! Thanks for ordering from " + state.shop.name + ".")) + due;
+        ("Your order " + o.tokenDisplay + " has been delivered! Thanks for ordering from " + currentHub().shop.name + ".") :
+        ("Your order " + o.tokenDisplay + " is completed! Thanks for ordering from " + currentHub().shop.name + ".")) + due;
     }
-    return "Update on your order " + o.tokenDisplay + " at " + state.shop.name + ": " + o.status;
+    return "Update on your order " + o.tokenDisplay + " at " + currentHub().shop.name + ": " + o.status;
   }
 
   /* ---------- Daily log: WhatsApp text summary + CSV export ---------- */
@@ -1027,8 +1047,8 @@
     var delivery = list.length - pickup;
 
     var lines = [];
-    lines.push("DSK Food Hub — daily summary");
-    lines.push(state.shop.name + " · " + fmtDate(todayStr()));
+    lines.push(state.hub.name + " — daily summary");
+    lines.push(currentHub().shop.name + " · " + fmtDate(todayStr()));
     lines.push("");
     lines.push("Orders: " + list.length + "  (Completed " + completed.length + ", Rejected/cancelled " + closedOut.length + ", Still open " + stillOpen.length + ")");
     lines.push("Sales (completed): " + money(sales));
@@ -1134,7 +1154,7 @@
     return '<div class="modal-backdrop" id="pin-backdrop">' +
       '<div class="modal-card">' +
         '<h3>🧑‍🍳 Owner Login</h3>' +
-        '<p class="sub">Enter the PIN to manage ' + esc(state.shop.name) + '.</p>' +
+        '<p class="sub">Enter your hub\'s PIN to manage it.</p>' +
         '<input type="password" inputmode="numeric" id="pin-input" placeholder="••••" autocomplete="off" value="' + esc(state.ui.pinInput) + '">' +
         (state.ui.pinError ? '<div class="err" style="text-align:center;margin-top:8px">' + esc(state.ui.pinError) + '</div>' : '') +
         '<div style="display:flex;gap:8px;margin-top:14px">' +
@@ -1163,7 +1183,7 @@
   }
 
   function renderRibbon(){
-    var cs = computeShopState();
+    var cs = computeShopState(currentHub().shop);
     var badge = badgeForStatus(cs), reason = "";
     if(cs.state === "HOLIDAY"){
       reason = 'Back ' + fmtDate(cs.until) + (cs.reason ? ' — ' + esc(cs.reason) : '');
@@ -1173,10 +1193,10 @@
     var ahead = activeOrdersAheadOf(Infinity);
     var eta = computeEta(ahead);
     var etaChip = cs.state === "OPEN" ? '<span class="eta-chip">⏱ ' + eta.min + '–' + eta.max + ' min wait</span>' : "";
-    var delivery = state.shop.deliveryEnabled ? '<span class="badge" style="background:var(--teal-soft);color:var(--teal)">🛵 Delivery on</span>' : '<span class="badge" style="background:var(--surface-2);color:var(--ink-soft)">🛵 Pickup only</span>';
+    var delivery = currentHub().shop.deliveryEnabled ? '<span class="badge" style="background:var(--teal-soft);color:var(--teal)">🛵 Delivery on</span>' : '<span class="badge" style="background:var(--surface-2);color:var(--ink-soft)">🛵 Pickup only</span>';
 
     document.getElementById("ribbon").innerHTML =
-      '<span class="shop-name">' + esc(state.shop.name) + '</span>' +
+      '<span class="shop-name">' + esc(currentHub().shop.name) + '</span>' +
       badge +
       (reason ? '<span class="reason">' + reason + '</span>' : '') +
       delivery +
@@ -1186,7 +1206,7 @@
   /* ---------- Customer view ---------- */
   function cartLines(){
     return Object.keys(state.ui.cart).filter(function(id){ return state.ui.cart[id] > 0; }).map(function(id){
-      var item = state.menu.find(function(m){ return m.id === id; });
+      var item = currentHub().menu.find(function(m){ return m.id === id; });
       return item ? { item: item, qty: state.ui.cart[id] } : null;
     }).filter(Boolean);
   }
@@ -1233,36 +1253,60 @@
     if(filter === "delivery" || filter === "both") return !!shop.deliveryEnabled;
     return true; // "" (any) or "pickup"
   }
-  function renderHubGrid(){
-    var cs = computeShopState();
-    var special = state.menu.find(function(m){ return m.id === state.shop.todaySpecialId; });
-    var metaBits = [state.shop.deliveryEnabled ? "🛵 Delivery available" : "🚶 Pickup only"];
-    var ratingSummary = shopRatingSummary();
+  function allHubsRatingSummary(){
+    var all = [];
+    Object.keys(state.hubs).forEach(function(hid){ all = all.concat(state.hubs[hid].reviews); });
+    if(!all.length) return null;
+    var sum = all.reduce(function(s,r){ return s + (r.rating||0); }, 0);
+    return { avg: sum / all.length, count: all.length };
+  }
+  function renderHubTile(hubId, hub){
+    var cs = computeShopState(hub.shop);
+    var special = hub.menu.find(function(m){ return m.id === hub.shop.todaySpecialId; });
+    var metaBits = [hub.shop.deliveryEnabled ? "🛵 Delivery available" : "🚶 Pickup only"];
+    var ratingSummary = hubRatingSummary(hub);
     var ratingBadgeHtml = ratingSummary ? ('<span class="rating-badge">⭐ ' + ratingSummary.avg.toFixed(1) + ' (' + ratingSummary.count + ')</span>') : '';
-    var hubVisible = state.shop.visibleOnMainPage !== false;
-    var statusText = cs.state === "OPEN" ? "Open now" : (cs.state === "HOLIDAY" ? "On leave" : "Closed");
+    return '<div class="hub-tile">' +
+      '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' + badgeForStatus(cs) + ratingBadgeHtml + '</div>' +
+      '<h3>' + esc(hub.shop.name) + '</h3>' +
+      '<p class="local">' + esc(hub.shop.local) + '</p>' +
+      '<div class="hub-tile-meta">' + metaBits.join(" · ") + '</div>' +
+      (special ? ('<div class="hub-tile-special">★ Today: ' + esc(special.name) + ' ' + money(special.price) + '</div>') : '') +
+      '<div class="hub-tile-actions">' +
+        '<button class="hub-tile-more" data-open-hub-profile="' + esc(hubId) + '">More details</button>' +
+        '<button class="hub-tile-view" data-open-hub="' + esc(hubId) + '">View menu →</button>' +
+      '</div>' +
+      '</div>';
+  }
+  function renderHubGrid(){
     var openOnly = !!state.ui.hubFilterOpenOnly;
     var fulfilFilter = state.ui.hubFulfilmentFilter || "";
     var FULFIL_LABEL = { pickup:"Pickup", delivery:"Delivery", both:"Delivery + Pickup" };
-    var passesFilter = (!openOnly || cs.state === "OPEN") && hubMatchesFulfilment(fulfilFilter, state.shop);
     var anyFilterOn = openOnly || !!fulfilFilter;
+    var allRatingSummary = allHubsRatingSummary();
 
-    var html = '<button class="crumb" id="btn-to-welcome">← DSK Food Hub</button>';
+    var allHubIds = Object.keys(state.hubs);
+    var visibleHubIds = allHubIds.filter(function(hid){ return state.hubs[hid].shop.visibleOnMainPage !== false; });
+    var openCount = visibleHubIds.filter(function(hid){ return computeShopState(state.hubs[hid].shop).state === "OPEN"; }).length;
+    var matchingHubIds = visibleHubIds.filter(function(hid){
+      var shop = state.hubs[hid].shop;
+      return (!openOnly || computeShopState(shop).state === "OPEN") && hubMatchesFulfilment(fulfilFilter, shop);
+    });
+
+    var html = '<button class="crumb" id="btn-to-welcome">← ' + esc(state.hub.name) + '</button>';
     html += '<div class="hub-hero"><h2>Choose a food hub</h2><p>Pick a hub near you, check what\'s open, then order ahead and pay when you collect or receive it.</p></div>';
 
-    var waAdInterest = waLink(state.shop.ownerWhatsapp, "Hi, I'm interested in advertising on DSK Food Hub.");
-    html += '<div class="ad-slot ad-slot-banner">📢 Sponsored space available — reach local customers on DSK Food Hub.' +
-      (waAdInterest ? (' <a href="' + waAdInterest + '" target="_blank" rel="noopener">Advertise here →</a>') : '') + '</div>';
+    html += '<div class="ad-slot ad-slot-banner">📢 Sponsored space available — reach local customers on ' + esc(state.hub.name) + '.</div>';
 
     html += '<div class="hub-kpis">';
-    html += '<div class="hub-kpi"><div class="k">Hubs live today</div><div class="v">' + (hubVisible?1:0) + '</div></div>';
-    html += '<button class="hub-kpi filterable" data-toggle-filter="open" aria-pressed="' + openOnly + '"><div class="k">Status<span class="filter-hint">tap to filter</span></div><div class="v">' + statusText + '</div></button>';
+    html += '<div class="hub-kpi"><div class="k">Hubs live today</div><div class="v">' + visibleHubIds.length + '</div></div>';
+    html += '<button class="hub-kpi filterable" data-toggle-filter="open" aria-pressed="' + openOnly + '"><div class="k">Status<span class="filter-hint">tap to filter</span></div><div class="v" style="font-size:16px">' + openCount + ' of ' + visibleHubIds.length + ' open</div></button>';
     html += '<div class="hub-kpi"><div class="k">Fulfilment</div><div class="fulfil-chip-row">' +
       '<button class="fulfil-chip" data-fulfil-filter="pickup" aria-pressed="' + (fulfilFilter==="pickup") + '">🚶 Pickup</button>' +
       '<button class="fulfil-chip" data-fulfil-filter="delivery" aria-pressed="' + (fulfilFilter==="delivery") + '">🛵 Delivery</button>' +
       '<button class="fulfil-chip" data-fulfil-filter="both" aria-pressed="' + (fulfilFilter==="both") + '">🚶🛵 Both</button>' +
       '</div></div>';
-    html += '<div class="hub-kpi"><div class="k">Rating</div><div class="v" style="font-size:14px">' + (ratingSummary ? ('⭐ ' + ratingSummary.avg.toFixed(1) + ' (' + ratingSummary.count + ')') : 'No ratings yet') + '</div></div>';
+    html += '<div class="hub-kpi"><div class="k">Rating</div><div class="v" style="font-size:14px">' + (allRatingSummary ? ('⭐ ' + allRatingSummary.avg.toFixed(1) + ' (' + allRatingSummary.count + ')') : 'No ratings yet') + '</div></div>';
     html += '</div>';
 
     if(anyFilterOn){
@@ -1271,46 +1315,36 @@
     }
 
     html += '<div class="hub-grid">';
-    if(hubVisible && passesFilter){
-      html += '<div class="hub-tile">' +
-        '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' + badgeForStatus(cs) + ratingBadgeHtml + '</div>' +
-        '<h3>' + esc(state.shop.name) + '</h3>' +
-        '<p class="local">' + esc(state.shop.local) + '</p>' +
-        '<div class="hub-tile-meta">' + metaBits.join(" · ") + '</div>' +
-        (special ? ('<div class="hub-tile-special">★ Today: ' + esc(special.name) + ' ' + money(special.price) + '</div>') : '') +
-        '<div class="hub-tile-actions">' +
-          '<button class="hub-tile-more" data-open-hub-profile="1">More details</button>' +
-          '<button class="hub-tile-view" data-open-hub="1">View menu →</button>' +
-        '</div>' +
-        '</div>';
-    } else if(hubVisible){
+    if(matchingHubIds.length){
+      matchingHubIds.forEach(function(hid){ html += renderHubTile(hid, state.hubs[hid]); });
+    } else if(visibleHubIds.length){
       html += '<div class="empty-note">No hubs match your filters. <button class="btn btn-ghost btn-sm" id="btn-clear-hub-filters">Clear filters</button></div>';
     } else {
       html += '<div class="empty-note">No hubs available right now — check back later.</div>';
     }
     html += '<div class="hub-tile-ghost">More food hubs will show up here as your community adds them</div>';
-    html += '<div class="ad-slot">Your ad here — reach local customers.' + (waAdInterest ? (' <a href="' + waAdInterest + '" target="_blank" rel="noopener">Get in touch →</a>') : '') + '</div>';
+    html += '<div class="ad-slot">Your ad here — reach local customers.</div>';
     html += '</div>';
     return html;
   }
 
   function renderHubProfile(){
-    var cs = computeShopState();
+    var cs = computeShopState(currentHub().shop);
     var ratingSummary = shopRatingSummary();
-    var hoursText = formatShopHours(state.shop);
-    var weeklyOff = (state.shop.weeklyHolidays||[]).slice().sort();
-    var custMapsLink = mapsLink(), custCallLink = telLink(state.shop.ownerWhatsapp);
+    var hoursText = formatShopHours(currentHub().shop);
+    var weeklyOff = (currentHub().shop.weeklyHolidays||[]).slice().sort();
+    var custMapsLink = mapsLink(), custCallLink = telLink(currentHub().shop.ownerWhatsapp);
 
     var html = '<button class="crumb" id="btn-to-hubs">← All food hubs</button>';
     html += '<div class="profile-card">';
     html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">' + badgeForStatus(cs) +
       (ratingSummary ? ('<span class="rating-badge">⭐ ' + ratingSummary.avg.toFixed(1) + ' (' + ratingSummary.count + ')</span>') : '') + '</div>';
-    html += '<h2 class="display" style="font-size:21px;margin-bottom:2px">' + esc(state.shop.name) + '</h2>';
-    html += '<p class="sub" style="margin-bottom:0">' + esc(state.shop.local) + '</p>';
+    html += '<h2 class="display" style="font-size:21px;margin-bottom:2px">' + esc(currentHub().shop.name) + '</h2>';
+    html += '<p class="sub" style="margin-bottom:0">' + esc(currentHub().shop.local) + '</p>';
 
     html += '<div class="profile-section"><div class="lbl">Address</div>' +
-      (state.shop.address ? ('<div>📍 ' + esc(state.shop.address) + '</div>') : '<div class="hint">Not added yet.</div>') +
-      (state.shop.addressLocal ? ('<div class="hint" style="margin-top:2px">' + esc(state.shop.addressLocal) + '</div>') : '') +
+      (currentHub().shop.address ? ('<div>📍 ' + esc(currentHub().shop.address) + '</div>') : '<div class="hint">Not added yet.</div>') +
+      (currentHub().shop.addressLocal ? ('<div class="hint" style="margin-top:2px">' + esc(currentHub().shop.addressLocal) + '</div>') : '') +
       '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">' +
         (custCallLink ? ('<a class="btn btn-sm" href="' + esc(custCallLink) + '" style="text-decoration:none">📞 Call shop</a>') : '') +
         (custMapsLink ? ('<a class="btn btn-sm" href="' + esc(custMapsLink) + '" target="_blank" rel="noopener" style="text-decoration:none">📍 Get directions</a>') : '') +
@@ -1323,11 +1357,11 @@
       '</div>';
 
     html += '<div class="profile-section"><div class="lbl">Fulfilment</div><div>' +
-      (state.shop.deliveryEnabled ? "🛵 Home delivery available, or 🚶 pickup at the counter." : "🚶 Pickup only — no delivery right now.") +
+      (currentHub().shop.deliveryEnabled ? "🛵 Home delivery available, or 🚶 pickup at the counter." : "🚶 Pickup only — no delivery right now.") +
       '</div></div>';
 
     if(ratingSummary){
-      var recent = state.reviews.slice().sort(function(a,b){ return b.createdAt - a.createdAt; }).slice(0,3);
+      var recent = currentHub().reviews.slice().sort(function(a,b){ return b.createdAt - a.createdAt; }).slice(0,3);
       html += '<div class="profile-section"><div class="lbl">Recent reviews</div>';
       recent.forEach(function(r){
         html += '<div class="review-mini"><span class="stars">' + "★".repeat(r.rating) + '</span>' + esc(r.comment || "(no comment)") + '</div>';
@@ -1341,9 +1375,9 @@
   }
 
   function renderShopPage(){
-    var cs = computeShopState();
+    var cs = computeShopState(currentHub().shop);
     var openForOrders = cs.state === "OPEN";
-    var order = state.ui.activeOrderId ? state.orders.find(function(o){ return o.id === state.ui.activeOrderId; }) : null;
+    var order = state.ui.activeOrderId ? currentHub().orders.find(function(o){ return o.id === state.ui.activeOrderId; }) : null;
 
     var html = '<button class="crumb" id="btn-to-hubs">← All food hubs</button>';
     html += '<div class="grid2">';
@@ -1364,9 +1398,9 @@
     }
 
     html += '<div class="card accent-customer">';
-    html += '<h2 class="display">' + esc(state.shop.name) + '</h2>';
-    html += '<p class="sub">' + esc(state.shop.local) + '</p>';
-    var custCallLink = telLink(state.shop.ownerWhatsapp), custMapsLink = mapsLink();
+    html += '<h2 class="display">' + esc(currentHub().shop.name) + '</h2>';
+    html += '<p class="sub">' + esc(currentHub().shop.local) + '</p>';
+    var custCallLink = telLink(currentHub().shop.ownerWhatsapp), custMapsLink = mapsLink();
     if(custCallLink || custMapsLink){
       html += '<div class="shop-quick-actions">';
       if(custCallLink) html += '<a class="btn btn-sm" href="' + esc(custCallLink) + '" style="text-decoration:none">📞 Call shop</a>';
@@ -1377,11 +1411,11 @@
       html += '<div style="background:var(--surface-2);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:13.5px;color:var(--ink-soft)">Menu is browsable, but ordering opens again once the hub reopens.</div>';
     }
     html += '<div class="section-title">Menu</div>';
-    if(state.menu.length === 0) html += '<div class="empty-note">No items on the menu right now.</div>';
-    state.menu.forEach(function(item){
+    if(currentHub().menu.length === 0) html += '<div class="empty-note">No items on the menu right now.</div>';
+    currentHub().menu.forEach(function(item){
       if(item.showOnMenu === false) return;
       var qty = state.ui.cart[item.id] || 0;
-      var isSpecial = item.id === state.shop.todaySpecialId;
+      var isSpecial = item.id === currentHub().shop.todaySpecialId;
       html += '<div class="menu-row">';
       html += '<div class="info"><span class="name">' + esc(item.name) + '</span>';
       if(isSpecial) html += '<span class="special-flag">★ Special</span>';
@@ -1418,7 +1452,7 @@
     html += '<div class="ticket-stub"><div class="lbl">Your token</div><div class="code">' + esc(order.tokenDisplay) + '</div></div>';
     html += '<div class="ticket-seam"></div>';
     html += '<div class="ticket-body">';
-    html += '<div class="top-row"><div><h3>' + esc(state.shop.name) + '</h3><div class="hint" style="margin-top:2px">' + (order.fulfilment==="DELIVERY"?"🛵 Home delivery":"🚶 Pickup") + '</div></div>';
+    html += '<div class="top-row"><div><h3>' + esc(currentHub().shop.name) + '</h3><div class="hint" style="margin-top:2px">' + (order.fulfilment==="DELIVERY"?"🛵 Home delivery":"🚶 Pickup") + '</div></div>';
     html += '<span class="status-pill st-' + order.status + '">' + order.status + '</span></div>';
 
     html += '<div style="display:flex;align-items:center;justify-content:space-between;margin:8px 0">' +
@@ -1470,7 +1504,7 @@
       }
     }
 
-    var shopWa = waLink(state.shop.ownerWhatsapp, orderSummaryText(order));
+    var shopWa = waLink(currentHub().shop.ownerWhatsapp, orderSummaryText(order));
     if(order.status === "PENDING"){
       if(shopWa){
         html += '<a class="btn btn-primary" data-full href="' + shopWa + '" target="_blank" rel="noopener" style="margin-top:14px;text-decoration:none">📲 Send order to shop on WhatsApp</a>';
@@ -1478,7 +1512,7 @@
         html += '<div class="hint" style="margin-top:12px">The shop hasn\'t added a WhatsApp number yet, so this can\'t be sent automatically — ask them to add one under Owner → Contact.</div>';
       }
     }
-    var ticketCallLink = telLink(state.shop.ownerWhatsapp);
+    var ticketCallLink = telLink(currentHub().shop.ownerWhatsapp);
     if(ticketCallLink) html += '<a class="btn btn-sm btn-ghost" href="' + esc(ticketCallLink) + '" style="margin-top:8px;text-decoration:none">📞 Call shop</a>';
 
     var canManage = order.status === "PENDING" || order.status === "ACCEPTED";
@@ -1516,10 +1550,10 @@
     var lines = cartLines();
     var total = cartTotal(lines);
     var u = state.ui;
-    var deliveryOn = state.shop.deliveryEnabled;
+    var deliveryOn = currentHub().shop.deliveryEnabled;
 
     var editing = !!state.ui.editingOrderId;
-    var editingOrder = editing ? state.orders.find(function(o){ return o.id === state.ui.editingOrderId; }) : null;
+    var editingOrder = editing ? currentHub().orders.find(function(o){ return o.id === state.ui.editingOrderId; }) : null;
 
     var html = '<div class="card accent-customer">';
     html += '<h2>' + (editing ? "Update your order" : "Your order") + '</h2>';
@@ -1557,8 +1591,8 @@
       html += '<div class="card">';
       html += '<div class="section-title">Orders from this device</div>';
       mine.slice(0,6).forEach(function(o){
-        var isCurrent = o.id === state.ui.activeOrderId;
-        html += '<div class="kv-row"><span class="k">' + esc(o.tokenDisplay) + ' · ' + fmtDate(o.serviceDate) + '</span>' +
+        var isCurrent = o.id === state.ui.activeOrderId && o.hubId === state.ui.activeHubId;
+        html += '<div class="kv-row"><span class="k">' + esc(o.tokenDisplay) + ' · ' + esc(o.hubName) + ' · ' + fmtDate(o.serviceDate) + '</span>' +
           '<span class="v" style="display:flex;align-items:center;gap:8px"><span class="status-pill st-' + o.status + '" style="font-size:10px">' + o.status + '</span>' +
           (isCurrent ? '' : '<button class="btn btn-ghost btn-sm" data-view-order="' + o.id + '" style="padding:3px 9px">View</button>') +
           '</span></div>';
@@ -1571,16 +1605,26 @@
   // previously returning every order for the whole shop (a real privacy leak: any customer
   // could see every other customer's token, date and status). myOrderIds is local-only
   // (never synced to the cloud), populated the moment an order is placed on this device.
+  // Spans every hub, not just the one currently open — a customer's device history should
+  // show an order they placed at hub A even while they're now browsing hub B.
   function todaysAndPastOrders(){
     var mine = state.ui.myOrderIds || [];
-    return state.orders.filter(function(o){ return mine.indexOf(o.id) !== -1; })
-      .sort(function(a,b){ return b.createdAt - a.createdAt; });
+    var out = [];
+    Object.keys(state.hubs).forEach(function(hid){
+      state.hubs[hid].orders.forEach(function(o){
+        if(mine.indexOf(o.id) !== -1) out.push(Object.assign({ hubId: hid, hubName: state.hubs[hid].shop.name }, o));
+      });
+    });
+    return out.sort(function(a,b){ return b.createdAt - a.createdAt; });
   }
 
   /* ---------- Owner view ---------- */
   function ownerView(){
+    // Now that more than one hub can exist, always show which one this console is
+    // scoped to — the owner console only ever operates on ownerHubId, never any other.
+    var hubLabel = '<div class="owner-hub-label">🧑‍🍳 Managing: <strong>' + esc(currentHub().shop.name) + '</strong></div>';
     var tabsHtml = renderOwnerTabs();
-    return tabsHtml + (state.ui.ownerTab === "manage" ? renderOwnerManage() : renderOwnerOrders());
+    return hubLabel + tabsHtml + (state.ui.ownerTab === "manage" ? renderOwnerManage() : renderOwnerOrders());
   }
 
   function renderOwnerTabs(){
@@ -1613,8 +1657,8 @@
     html += '<p class="sub">' + fmtDate(todayStr()) + ' · ' + openOrders.length + ' open · ' + closedOrders.length + ' closed</p></div>';
     html += '<div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">';
     html += '<div class="voice-toggle-box">' +
-      '<label class="switch"><input type="checkbox" id="tg-voice" ' + (state.shop.voiceAnnounce?'checked':'') + '><span class="track"></span></label>' +
-      '<span>' + (state.shop.voiceAnnounce ? '🔊 Voice alerts active' : '🔇 Voice alerts inactive') + '</span>' +
+      '<label class="switch"><input type="checkbox" id="tg-voice" ' + (currentHub().shop.voiceAnnounce?'checked':'') + '><span class="track"></span></label>' +
+      '<span>' + (currentHub().shop.voiceAnnounce ? '🔊 Voice alerts active' : '🔇 Voice alerts inactive') + '</span>' +
       '<button class="btn btn-ghost btn-sm" id="btn-voice-test" type="button">Test</button>' +
     '</div>';
     if(state.ui.pushEnabledHere){
@@ -1655,13 +1699,13 @@
     var completed = today.filter(function(o){ return o.status === "COMPLETED"; });
     var sales = completed.reduce(function(s,o){ return s + o.total; }, 0);
     var active = today.filter(function(o){ return ACTIVE_STATUSES.indexOf(o.status) !== -1; }).length;
-    var cs = computeShopState();
+    var cs = computeShopState(currentHub().shop);
 
     var html = '<div class="stat-grid" style="margin-top:18px">';
     html += statTile(money(sales), "Sales today");
     html += statTile(today.length, "Orders today");
     html += statTile(active, "Active tokens");
-    html += statTile(state.shop.avgPrepMinutes + " min", "Avg prep");
+    html += statTile(currentHub().shop.avgPrepMinutes + " min", "Avg prep");
     html += '</div>';
 
     html += '<div class="grid2">';
@@ -1681,7 +1725,7 @@
           '<span class="v">' + money(o.total) + ' <span class="status-pill st-' + o.status + '" style="font-size:9.5px;margin-left:4px">' + o.status + '</span></span></div>';
       });
     }
-    var waSummary = waLink(state.shop.ownerWhatsapp, dailySummaryText());
+    var waSummary = waLink(currentHub().shop.ownerWhatsapp, dailySummaryText());
     html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">';
     if(waSummary){
       html += '<a class="btn btn-owner btn-sm" href="' + waSummary + '" target="_blank" rel="noopener" style="text-decoration:none">📲 Send summary to WhatsApp</a>';
@@ -1720,7 +1764,7 @@
       html += '<div class="empty-state" style="padding:16px 10px"><div class="big">⭐</div>No reviews yet.</div>';
     } else {
       html += '<div class="kv-row"><span class="k">Average rating</span><span class="v">⭐ ' + ratingSummary.avg.toFixed(1) + ' · ' + ratingSummary.count + ' review' + (ratingSummary.count===1?'':'s') + '</span></div>';
-      state.reviews.slice().sort(function(a,b){ return b.createdAt - a.createdAt; }).slice(0,8).forEach(function(r){
+      currentHub().reviews.slice().sort(function(a,b){ return b.createdAt - a.createdAt; }).slice(0,8).forEach(function(r){
         html += '<div class="kv-row" style="align-items:flex-start"><span class="k">' + '★'.repeat(r.rating) + '<span style="color:var(--line)">' + '★'.repeat(5-r.rating) + '</span> ' + esc(r.name) + ' <span class="hint">(' + esc(r.tokenDisplay) + ')</span>' + (r.comment ? ('<br><span class="hint">"' + esc(r.comment) + '"</span>') : '') + '</span></div>';
       });
     }
@@ -1731,13 +1775,13 @@
     html += '<h2>Today\'s special</h2>';
     html += '<select id="sel-special">';
     html += '<option value="">— none —</option>';
-    state.menu.forEach(function(m){ html += '<option value="' + m.id + '" ' + (m.id===state.shop.todaySpecialId?'selected':'') + '>' + esc(m.name) + '</option>'; });
+    currentHub().menu.forEach(function(m){ html += '<option value="' + m.id + '" ' + (m.id===currentHub().shop.todaySpecialId?'selected':'') + '>' + esc(m.name) + '</option>'; });
     html += '</select></div>';
 
     // Menu editor
     html += '<div class="card accent-owner">';
     html += '<h2>Menu</h2><p class="sub">Prices, availability and occasion tags — live for customers. Add extra items for festivals or special occasions any time.</p>';
-    state.menu.forEach(function(m){
+    currentHub().menu.forEach(function(m){
       html += '<div class="menu-edit-row">';
       html += '<div><div class="nm">' + esc(m.name) + (m.occasion ? ' <span class="occasion-flag">🎉 ' + esc(m.occasion) + '</span>' : '') + '</div><div class="lc">' + esc(m.local) + '</div></div>';
       html += '<input type="number" min="0" step="5" class="mono" data-price="' + m.id + '" value="' + m.price + '">';
@@ -1768,15 +1812,15 @@
     html += '<h2>Today\'s status</h2>';
     html += '<p class="sub">For an unplanned closure right now — everything below this handles the regular schedule.</p>';
     html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--line)">';
-    html += '<div><strong>' + (state.shop.visibleOnMainPage!==false ? "Shown on main page" : "Hidden from main page") + '</strong><div class="hint">Turn off to disappear from the hub list for the day, e.g. shop shut, no orders at all.</div></div>';
-    html += '<label class="switch"><input type="checkbox" id="tg-visible" ' + (state.shop.visibleOnMainPage!==false?'checked':'') + '><span class="track"></span></label>';
+    html += '<div><strong>' + (currentHub().shop.visibleOnMainPage!==false ? "Shown on main page" : "Hidden from main page") + '</strong><div class="hint">Turn off to disappear from the hub list for the day, e.g. shop shut, no orders at all.</div></div>';
+    html += '<label class="switch"><input type="checkbox" id="tg-visible" ' + (currentHub().shop.visibleOnMainPage!==false?'checked':'') + '><span class="track"></span></label>';
     html += '</div>';
     html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">';
-    html += '<div><strong>' + (state.shop.isOpenManual ? "Open for orders" : "Closed") + '</strong></div>';
-    html += '<label class="switch"><input type="checkbox" id="tg-open" ' + (state.shop.isOpenManual?'checked':'') + '><span class="track"></span></label>';
+    html += '<div><strong>' + (currentHub().shop.isOpenManual ? "Open for orders" : "Closed") + '</strong></div>';
+    html += '<label class="switch"><input type="checkbox" id="tg-open" ' + (currentHub().shop.isOpenManual?'checked':'') + '><span class="track"></span></label>';
     html += '</div>';
-    if(!state.shop.isOpenManual){
-      html += '<div class="field" style="margin-top:10px"><label>Reason customers will see</label><textarea id="in-closure-reason" placeholder="e.g. Gas cylinder over, back by 5pm">' + esc(state.shop.closureReason) + '</textarea></div>';
+    if(!currentHub().shop.isOpenManual){
+      html += '<div class="field" style="margin-top:10px"><label>Reason customers will see</label><textarea id="in-closure-reason" placeholder="e.g. Gas cylinder over, back by 5pm">' + esc(currentHub().shop.closureReason) + '</textarea></div>';
       html += '<button class="btn btn-owner btn-sm" id="btn-save-closure">Save reason</button>';
     }
     html += '</div>';
@@ -1787,16 +1831,16 @@
     html += '<p class="sub">Outside these hours, customers see the hub as closed automatically.</p>';
     html += '<div class="section-title" style="margin-top:0">First half</div>';
     html += '<div class="field-row">';
-    html += '<div class="field"><label>Opens</label><input type="time" id="in-open-time-1" value="' + esc(state.shop.openTime1) + '"></div>';
-    html += '<div class="field"><label>Closes</label><input type="time" id="in-close-time-1" value="' + esc(state.shop.closeTime1) + '"></div>';
+    html += '<div class="field"><label>Opens</label><input type="time" id="in-open-time-1" value="' + esc(currentHub().shop.openTime1) + '"></div>';
+    html += '<div class="field"><label>Closes</label><input type="time" id="in-close-time-1" value="' + esc(currentHub().shop.closeTime1) + '"></div>';
     html += '</div>';
     html += '<div class="section-title">Second half <span class="hint" style="text-transform:none;letter-spacing:0;font-weight:400">(optional — leave both blank for a single shift)</span></div>';
     html += '<div class="field-row">';
-    html += '<div class="field"><label>Opens</label><input type="time" id="in-open-time-2" value="' + esc(state.shop.openTime2) + '"></div>';
-    html += '<div class="field"><label>Closes</label><input type="time" id="in-close-time-2" value="' + esc(state.shop.closeTime2) + '"></div>';
+    html += '<div class="field"><label>Opens</label><input type="time" id="in-open-time-2" value="' + esc(currentHub().shop.openTime2) + '"></div>';
+    html += '<div class="field"><label>Closes</label><input type="time" id="in-close-time-2" value="' + esc(currentHub().shop.closeTime2) + '"></div>';
     html += '</div>';
     html += '<hr style="border:none;border-top:1px solid var(--line);margin:16px 0">';
-    html += '<div class="field"><label>Average preparation time (minutes)</label><input type="number" min="1" step="1" id="in-avg-prep" value="' + esc(state.shop.avgPrepMinutes) + '"></div>';
+    html += '<div class="field"><label>Average preparation time (minutes)</label><input type="number" min="1" step="1" id="in-avg-prep" value="' + esc(currentHub().shop.avgPrepMinutes) + '"></div>';
     html += '<p class="hint">Used to estimate how long customers wait for their token.</p>';
     html += '</div>';
 
@@ -1806,7 +1850,7 @@
     html += '<p class="sub">Pick any days the hub is always closed, every week.</p>';
     html += '<div class="chip-row">';
     WEEKDAY_SHORT.forEach(function(name, idx){
-      var on = (state.shop.weeklyHolidays||[]).indexOf(idx) !== -1;
+      var on = (currentHub().shop.weeklyHolidays||[]).indexOf(idx) !== -1;
       html += '<button type="button" class="chip" data-weekday="' + idx + '" aria-pressed="' + on + '">' + name + '</button>';
     });
     html += '</div></div>';
@@ -1816,13 +1860,13 @@
     html += '<h2>Any other holidays</h2>';
     html += '<p class="sub">A one-off date range — a festival, a trip. This overrides everything else while it lasts.</p>';
     html += '<div class="field-row">';
-    html += '<div class="field"><label>From</label><input type="date" id="in-hol-from" value="' + esc(state.shop.holidayFrom) + '"></div>';
-    html += '<div class="field"><label>To</label><input type="date" id="in-hol-to" value="' + esc(state.shop.holidayTo) + '"></div>';
+    html += '<div class="field"><label>From</label><input type="date" id="in-hol-from" value="' + esc(currentHub().shop.holidayFrom) + '"></div>';
+    html += '<div class="field"><label>To</label><input type="date" id="in-hol-to" value="' + esc(currentHub().shop.holidayTo) + '"></div>';
     html += '</div>';
-    html += '<div class="field"><label>Reason (shown to customers)</label><textarea id="in-hol-reason" placeholder="e.g. Family wedding, back next Monday">' + esc(state.shop.holidayReason) + '</textarea></div>';
+    html += '<div class="field"><label>Reason (shown to customers)</label><textarea id="in-hol-reason" placeholder="e.g. Family wedding, back next Monday">' + esc(currentHub().shop.holidayReason) + '</textarea></div>';
     html += '<div style="display:flex;gap:8px">';
     html += '<button class="btn btn-owner btn-sm" id="btn-save-holiday">Save holiday</button>';
-    if(state.shop.holidayFrom || state.shop.holidayTo){
+    if(currentHub().shop.holidayFrom || currentHub().shop.holidayTo){
       html += '<button class="btn btn-sm" id="btn-clear-holiday">Clear holiday</button>';
     }
     html += '</div>';
@@ -1834,20 +1878,20 @@
     html += '<h2>Home Delivery ?</h2>';
     html += '<div style="display:flex;align-items:center;justify-content:space-between">';
     html += '<div><strong>Home delivery</strong><div class="hint">Let customers request delivery, not just pickup.</div></div>';
-    html += '<label class="switch"><input type="checkbox" id="tg-delivery" ' + (state.shop.deliveryEnabled?'checked':'') + '><span class="track"></span></label>';
+    html += '<label class="switch"><input type="checkbox" id="tg-delivery" ' + (currentHub().shop.deliveryEnabled?'checked':'') + '><span class="track"></span></label>';
     html += '</div></div>';
 
     // Contact / WhatsApp
     html += '<div class="card accent-owner">';
     html += '<h2>Contact</h2>';
     html += '<p class="sub">Customers tap a button to send new-order details straight to this number on WhatsApp. You message customers back the same way from each order in the queue — nothing sends automatically.</p>';
-    html += '<div class="field"><label>Shop WhatsApp number</label><input type="tel" id="in-owner-whatsapp" value="' + esc(state.shop.ownerWhatsapp) + '" placeholder="10-digit mobile number"></div>';
-    html += '<div class="field"><label>Address</label><textarea id="in-shop-address" placeholder="Shop no., building, area, city - PIN code">' + esc(state.shop.address) + '</textarea></div>';
-    html += '<div class="field"><label>Address (local script, optional)</label><textarea id="in-shop-address-local" placeholder="पत्ता">' + esc(state.shop.addressLocal) + '</textarea></div>';
-    html += '<div class="field"><label>Google Maps link (optional)</label><input type="url" id="in-maps-url" value="' + esc(state.shop.mapsUrl) + '" placeholder="Paste a Google Maps share link here"></div>';
+    html += '<div class="field"><label>Shop WhatsApp number</label><input type="tel" id="in-owner-whatsapp" value="' + esc(currentHub().shop.ownerWhatsapp) + '" placeholder="10-digit mobile number"></div>';
+    html += '<div class="field"><label>Address</label><textarea id="in-shop-address" placeholder="Shop no., building, area, city - PIN code">' + esc(currentHub().shop.address) + '</textarea></div>';
+    html += '<div class="field"><label>Address (local script, optional)</label><textarea id="in-shop-address-local" placeholder="पत्ता">' + esc(currentHub().shop.addressLocal) + '</textarea></div>';
+    html += '<div class="field"><label>Google Maps link (optional)</label><input type="url" id="in-maps-url" value="' + esc(currentHub().shop.mapsUrl) + '" placeholder="Paste a Google Maps share link here"></div>';
     html += '<p class="hint" style="margin-bottom:10px">Powers "Call shop" and "Get directions" for customers. Without a Maps link, directions fall back to searching the address above.</p>';
     html += '<hr style="border:none;border-top:1px solid var(--line);margin:16px 0">';
-    html += '<div class="field"><label>Staff sign-in PIN</label><input type="text" inputmode="numeric" id="in-staff-pin" value="' + esc(state.shop.staffPin) + '" placeholder="e.g. 1234"></div>';
+    html += '<div class="field"><label>Staff sign-in PIN</label><input type="text" inputmode="numeric" id="in-staff-pin" value="' + esc(currentHub().shop.staffPin) + '" placeholder="e.g. 1234"></div>';
     html += '<p class="hint" style="margin-bottom:10px">Whoever runs the counter uses this PIN behind the "Owner Login" link at the bottom of the customer app — change it from the default.</p>';
     html += '<button class="btn btn-ghost btn-sm" id="btn-lock-now" style="color:var(--red)">🔒 Lock owner view on this device</button>';
     html += '</div>';
@@ -1856,14 +1900,14 @@
     html += '<div class="card accent-owner">';
     html += '<h2>UPI payment</h2>';
     html += '<p class="sub">Customers get a scannable QR code on their token screen. This is a payment request, not a gateway — you still confirm you\'ve received the money and mark the order paid yourself, exactly like cash.</p>';
-    html += '<div class="field"><label>UPI ID (VPA)</label><input type="text" id="in-upi-id" value="' + esc(state.shop.upiId) + '" placeholder="e.g. shopname@okhdfcbank"></div>';
-    html += '<div class="field"><label>Payee name shown to customer (optional)</label><input type="text" id="in-upi-payee" value="' + esc(state.shop.upiPayeeName) + '" placeholder="' + esc(state.shop.name) + '"></div>';
-    if(!state.shop.upiId) html += '<p class="hint">Leave UPI ID blank to hide this option and keep pay-at-hub only.</p>';
+    html += '<div class="field"><label>UPI ID (VPA)</label><input type="text" id="in-upi-id" value="' + esc(currentHub().shop.upiId) + '" placeholder="e.g. shopname@okhdfcbank"></div>';
+    html += '<div class="field"><label>Payee name shown to customer (optional)</label><input type="text" id="in-upi-payee" value="' + esc(currentHub().shop.upiPayeeName) + '" placeholder="' + esc(currentHub().shop.name) + '"></div>';
+    if(!currentHub().shop.upiId) html += '<p class="hint">Leave UPI ID blank to hide this option and keep pay-at-hub only.</p>';
     html += '<hr style="border:none;border-top:1px solid var(--line);margin:16px 0">';
     html += '<label>QR code logo (optional)</label>';
-    if(state.shop.qrLogoDataUrl){
+    if(currentHub().shop.qrLogoDataUrl){
       html += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">';
-      html += '<img src="' + state.shop.qrLogoDataUrl + '" alt="QR logo" style="width:56px;height:56px;border-radius:8px;object-fit:cover;border:1px solid var(--line)">';
+      html += '<img src="' + currentHub().shop.qrLogoDataUrl + '" alt="QR logo" style="width:56px;height:56px;border-radius:8px;object-fit:cover;border:1px solid var(--line)">';
       html += '<button class="btn btn-ghost btn-sm" id="btn-remove-qr-logo" style="color:var(--red)">Remove logo</button>';
       html += '</div>';
     }
@@ -1900,20 +1944,21 @@
   function ordersInPeriod(period){
     var today = todayStr();
     var start = period === "week" ? startOfWeekStr() : period === "month" ? (today.slice(0,7) + "-01") : null;
-    return state.orders.filter(function(o){
+    return currentHub().orders.filter(function(o){
       if(o.status === "REJECTED" || o.status === "CANCELLED") return false;
       if(period === "all") return true;
       if(period === "today") return o.serviceDate === today;
       return o.serviceDate >= start && o.serviceDate <= today;
     });
   }
-  function shopRatingSummary(){
-    if(!state.reviews.length) return null;
-    var sum = state.reviews.reduce(function(s,r){ return s + (r.rating||0); }, 0);
-    return { avg: sum / state.reviews.length, count: state.reviews.length };
+  function hubRatingSummary(hub){
+    if(!hub.reviews.length) return null;
+    var sum = hub.reviews.reduce(function(s,r){ return s + (r.rating||0); }, 0);
+    return { avg: sum / hub.reviews.length, count: hub.reviews.length };
   }
+  function shopRatingSummary(){ return hubRatingSummary(currentHub()); }
   function submitReview(orderId, rating, comment){
-    var o = state.orders.find(function(x){ return x.id === orderId; });
+    var o = currentHub().orders.find(function(x){ return x.id === orderId; });
     if(!o || !(rating >= 1 && rating <= 5)) return;
     var review = {
       orderId: orderId, tokenDisplay: o.tokenDisplay, name: o.name,
@@ -1929,11 +1974,11 @@
       toast("Thanks for your feedback!");
     }
     if(cloud.enabled){
-      cloud.db.ref("reviews").push(review).then(onSaved).catch(function(){
+      cloud.db.ref("hubs/" + currentHubId() + "/reviews").push(review).then(onSaved).catch(function(){
         toast("Couldn't submit your review — check your connection and try again.");
       });
     } else {
-      review.id = uid(); state.reviews.push(review);
+      review.id = uid(); currentHub().reviews.push(review);
       onSaved();
     }
   }
@@ -2056,7 +2101,7 @@
 
     var rmId;
     if((rmId = attr(t,"data-remove-item"))){
-      if(state.shop.todaySpecialId === rmId) updateShop({ todaySpecialId: "" });
+      if(currentHub().shop.todaySpecialId === rmId) updateShop({ todaySpecialId: "" });
       delete state.ui.cart[rmId];
       mutateMenuCloud(function(arr){ return arr.filter(function(m){ return m.id !== rmId; }); });
       toast("Item removed"); return;
@@ -2078,8 +2123,9 @@
     if(t.id === "btn-enter-hubs"){ state.ui.customerStep = "hubs"; persist(); render(); return; }
     if(t.id === "btn-to-welcome"){ state.ui.customerStep = "welcome"; persist(); render(); return; }
     if(t.id === "btn-to-hubs"){ state.ui.customerStep = "hubs"; persist(); render(); return; }
-    if(attr(t,"data-open-hub")){ state.ui.customerStep = "shop"; persist(); render(); return; }
-    if(attr(t,"data-open-hub-profile")){ state.ui.customerStep = "hubProfile"; persist(); render(); return; }
+    var openHubId;
+    if((openHubId = attr(t,"data-open-hub"))){ state.ui.activeHubId = openHubId; state.ui.customerStep = "shop"; persist(); render(); return; }
+    if((openHubId = attr(t,"data-open-hub-profile"))){ state.ui.activeHubId = openHubId; state.ui.customerStep = "hubProfile"; persist(); render(); return; }
     var filterKind;
     if((filterKind = attr(t,"data-toggle-filter"))){
       if(filterKind === "open") state.ui.hubFilterOpenOnly = !state.ui.hubFilterOpenOnly;
@@ -2112,6 +2158,8 @@
 
     var viewOrderId;
     if((viewOrderId = attr(t,"data-view-order"))){
+      var viewHubId = findHubOfOrder(viewOrderId);
+      if(viewHubId) state.ui.activeHubId = viewHubId;
       state.ui.activeOrderId = viewOrderId;
       state.ui.editingOrderId = null;
       persist(); render(); return;
@@ -2175,7 +2223,7 @@
     var wd = attr(t,"data-weekday");
     if(wd !== null){
       wd = +wd;
-      var wh = (state.shop.weeklyHolidays||[]).slice();
+      var wh = (currentHub().shop.weeklyHolidays||[]).slice();
       var pos = wh.indexOf(wd);
       if(pos === -1) wh.push(wd); else wh.splice(pos,1);
       updateShop({ weeklyHolidays: wh }); return;
@@ -2184,7 +2232,7 @@
     if(bestPeriod !== null){ state.ui.bestSellerPeriod = bestPeriod; persist(); render(); return; }
     if(t.id === "btn-export-csv"){ exportOrdersCsv(); return; }
     if(t.id === "btn-remove-qr-logo"){ updateShop({ qrLogoDataUrl: "" }); toast("QR logo removed"); return; }
-    if(t.id === "btn-voice-test"){ speak("This is a test announcement for " + state.shop.name + "."); return; }
+    if(t.id === "btn-voice-test"){ speak("This is a test announcement for " + currentHub().shop.name + "."); return; }
     if(t.id === "btn-enable-push"){ enableNotifications(); return; }
 
     if(t.id === "btn-lock-now"){
@@ -2196,6 +2244,7 @@
     if(t.id === "btn-reset-go"){
       state = JSON.parse(JSON.stringify(DEFAULT_STATE));
       state.ui.role = "owner"; state.ui.ownerUnlocked = true;
+      state.ui.ownerHubId = Object.keys(DEFAULT_STATE.hubs)[0];
       persist(); render(); toast("Demo data reset"); return;
     }
   }
@@ -2241,13 +2290,13 @@
     }
     // Free-text shop fields sync on blur (change), not every keystroke — avoids a cloud
     // echo mid-typing rebuilding the input and yanking the cursor away.
-    if(t.id === "in-owner-whatsapp"){ if(cloud.enabled) cloud.db.ref("shop").update({ ownerWhatsapp: t.value }); return; }
-    if(t.id === "in-shop-address"){ if(cloud.enabled) cloud.db.ref("shop").update({ address: t.value }); return; }
-    if(t.id === "in-shop-address-local"){ if(cloud.enabled) cloud.db.ref("shop").update({ addressLocal: t.value }); return; }
-    if(t.id === "in-maps-url"){ if(cloud.enabled) cloud.db.ref("shop").update({ mapsUrl: t.value.trim() }); return; }
-    if(t.id === "in-staff-pin"){ if(cloud.enabled) cloud.db.ref("shop").update({ staffPin: t.value }); return; }
-    if(t.id === "in-upi-id"){ if(cloud.enabled) cloud.db.ref("shop").update({ upiId: t.value.trim() }); return; }
-    if(t.id === "in-upi-payee"){ if(cloud.enabled) cloud.db.ref("shop").update({ upiPayeeName: t.value.trim() }); return; }
+    if(t.id === "in-owner-whatsapp"){ if(cloud.enabled) cloud.db.ref("hubs/" + currentHubId() + "/shop").update({ ownerWhatsapp: t.value }); return; }
+    if(t.id === "in-shop-address"){ if(cloud.enabled) cloud.db.ref("hubs/" + currentHubId() + "/shop").update({ address: t.value }); return; }
+    if(t.id === "in-shop-address-local"){ if(cloud.enabled) cloud.db.ref("hubs/" + currentHubId() + "/shop").update({ addressLocal: t.value }); return; }
+    if(t.id === "in-maps-url"){ if(cloud.enabled) cloud.db.ref("hubs/" + currentHubId() + "/shop").update({ mapsUrl: t.value.trim() }); return; }
+    if(t.id === "in-staff-pin"){ if(cloud.enabled) cloud.db.ref("hubs/" + currentHubId() + "/shop").update({ staffPin: t.value }); return; }
+    if(t.id === "in-upi-id"){ if(cloud.enabled) cloud.db.ref("hubs/" + currentHubId() + "/shop").update({ upiId: t.value.trim() }); return; }
+    if(t.id === "in-upi-payee"){ if(cloud.enabled) cloud.db.ref("hubs/" + currentHubId() + "/shop").update({ upiPayeeName: t.value.trim() }); return; }
     var id;
     if((id = attr(t,"data-price"))){
       var newPrice = Math.max(0, parseInt(t.value,10) || 0);
@@ -2286,13 +2335,13 @@
     else if(t.id === "in-address"){ state.ui.address = t.value; persist(); }
     else if(t.id === "in-notes"){ state.ui.notes = t.value; persist(); }
     else if(t.id === "in-review-comment"){ state.ui.reviewDraftComment = t.value; persist(); }
-    else if(t.id === "in-owner-whatsapp"){ state.shop.ownerWhatsapp = t.value; persist(); }
-    else if(t.id === "in-shop-address"){ state.shop.address = t.value; persist(); }
-    else if(t.id === "in-shop-address-local"){ state.shop.addressLocal = t.value; persist(); }
-    else if(t.id === "in-maps-url"){ state.shop.mapsUrl = t.value; persist(); }
-    else if(t.id === "in-staff-pin"){ state.shop.staffPin = t.value; persist(); }
-    else if(t.id === "in-upi-id"){ state.shop.upiId = t.value; persist(); }
-    else if(t.id === "in-upi-payee"){ state.shop.upiPayeeName = t.value; persist(); }
+    else if(t.id === "in-owner-whatsapp"){ currentHub().shop.ownerWhatsapp = t.value; persist(); }
+    else if(t.id === "in-shop-address"){ currentHub().shop.address = t.value; persist(); }
+    else if(t.id === "in-shop-address-local"){ currentHub().shop.addressLocal = t.value; persist(); }
+    else if(t.id === "in-maps-url"){ currentHub().shop.mapsUrl = t.value; persist(); }
+    else if(t.id === "in-staff-pin"){ currentHub().shop.staffPin = t.value; persist(); }
+    else if(t.id === "in-upi-id"){ currentHub().shop.upiId = t.value; persist(); }
+    else if(t.id === "in-upi-payee"){ currentHub().shop.upiPayeeName = t.value; persist(); }
     else if(t.id === "pin-input"){ state.ui.pinInput = t.value; state.ui.pinError = ""; persist(); }
     else if(t.id === "in-cust-login-name"){ state.ui.custLoginName = t.value; state.ui.custLoginError = ""; persist(); }
     else if(t.id === "in-cust-login-phone"){ state.ui.custLoginPhone = t.value; state.ui.custLoginError = ""; persist(); }
@@ -2318,7 +2367,7 @@
 
     if(state.ui.editingOrderId){
       var editId = state.ui.editingOrderId;
-      var existing = state.orders.find(function(o){ return o.id === editId; });
+      var existing = currentHub().orders.find(function(o){ return o.id === editId; });
       if(!existing || existing.status !== "PENDING"){
         toast("This order can no longer be edited — the shop may have already acted on it.");
         state.ui.editingOrderId = null; render(); return;
@@ -2344,7 +2393,7 @@
 
     function finish(seq){
       if(seq == null){ showErr("Could not reach the shop right now — please try again."); return; }
-      var id = (cloud.enabled && cloud.db) ? cloud.db.ref("orders").push().key : uid();
+      var id = (cloud.enabled && cloud.db) ? cloud.db.ref("hubs/" + currentHubId() + "/orders").push().key : uid();
       var order = {
         id: id,
         tokenSeq: seq,
@@ -2363,8 +2412,8 @@
         updatedAt: nowMs(),
         stageTimes: { PENDING: nowMs() }
       };
-      state.orders.push(order);
-      if(cloud.enabled) cloud.db.ref("orders/" + id).set(order);
+      currentHub().orders.push(order);
+      if(cloud.enabled) cloud.db.ref("hubs/" + currentHubId() + "/orders/" + id).set(order);
       state.ui.cart = {};
       state.ui.notes = "";
       state.ui.activeOrderId = order.id;
@@ -2383,11 +2432,11 @@
   // snapshot, not a menu item id) — anything since removed from the menu is dropped
   // with a note rather than silently kept as a ghost line.
   function startEditOrder(id){
-    var o = state.orders.find(function(x){ return x.id === id; });
+    var o = currentHub().orders.find(function(x){ return x.id === id; });
     if(!o || o.status !== "PENDING") return;
     var cart = {}, missing = [];
     o.items.forEach(function(item){
-      var m = state.menu.find(function(mm){ return mm.name === item.name; });
+      var m = currentHub().menu.find(function(mm){ return mm.name === item.name; });
       if(m) cart[m.id] = (cart[m.id]||0) + item.qty;
       else missing.push(item.name);
     });
@@ -2401,7 +2450,7 @@
     if(missing.length) toast(missing.join(", ") + " no longer on the menu — left out of the edit");
   }
   function cancelOrderByCustomer(id){
-    var o = state.orders.find(function(x){ return x.id === id; });
+    var o = currentHub().orders.find(function(x){ return x.id === id; });
     if(!o) return;
     var now = nowMs();
     patchOrderCloud(id, { status: "CANCELLED", updatedAt: now, ["stageTimes/CANCELLED"]: now, customerActionAt: now, customerActionType: "CANCELLED" });
@@ -2411,7 +2460,7 @@
   }
 
   function setOrderStatus(id, status){
-    var o = state.orders.find(function(x){ return x.id===id; });
+    var o = currentHub().orders.find(function(x){ return x.id===id; });
     if(!o) return;
     var now = nowMs();
     patchOrderCloud(id, { status: status, updatedAt: now, ["stageTimes/" + status]: now });
@@ -2419,13 +2468,13 @@
     toast(o.tokenDisplay + " → " + status.charAt(0)+status.slice(1).toLowerCase());
   }
   function markPaid(id){
-    var o = state.orders.find(function(x){ return x.id===id; });
+    var o = currentHub().orders.find(function(x){ return x.id===id; });
     if(!o) return;
     patchOrderCloud(id, { paymentStatus: "PAID", updatedAt: nowMs() });
     render(); toast(o.tokenDisplay + " marked paid");
   }
   function confirmReject(id, reason){
-    var o = state.orders.find(function(x){ return x.id===id; });
+    var o = currentHub().orders.find(function(x){ return x.id===id; });
     if(!o) return;
     var now = nowMs();
     patchOrderCloud(id, { status: "REJECTED", rejectReason: reason || "Not specified", updatedAt: now, ["stageTimes/REJECTED"]: now });
@@ -2462,13 +2511,26 @@
   // out, so re-opening the dashboard never re-announces the whole day's history. New orders
   // and customer-made changes (edits, cancellations) are tracked on separate cursors since
   // an edit/cancel doesn't touch createdAt.
+  // Cursors are per-hub — an owner running more than one hub off the same device
+  // shouldn't have checking hub A's orders silently mark hub B's as "already seen".
   function checkNewOrdersAndAnnounce(){
-    if(state.ui.role !== "owner" || !state.shop.voiceAnnounce) return;
-    var lastNew = state.ui.lastSeenOrderTs || 0;
-    var freshNew = state.orders.filter(function(o){ return o.createdAt > lastNew && o.serviceDate === todayStr() && o.status === "PENDING"; });
+    if(state.ui.role !== "owner" || !currentHub().shop.voiceAnnounce) return;
+    var hid = currentHubId();
+    state.ui.lastSeenOrderTsByHub = state.ui.lastSeenOrderTsByHub || {};
+    state.ui.lastSeenCustomerActionTsByHub = state.ui.lastSeenCustomerActionTsByHub || {};
+    if(state.ui.lastSeenOrderTsByHub[hid] == null){
+      // First time this device has checked this particular hub — start its clock now
+      // so the hub's whole existing order history doesn't get read out at once.
+      state.ui.lastSeenOrderTsByHub[hid] = nowMs();
+      state.ui.lastSeenCustomerActionTsByHub[hid] = nowMs();
+      persist();
+      return;
+    }
+    var lastNew = state.ui.lastSeenOrderTsByHub[hid];
+    var freshNew = currentHub().orders.filter(function(o){ return o.createdAt > lastNew && o.serviceDate === todayStr() && o.status === "PENDING"; });
 
-    var lastAction = state.ui.lastSeenCustomerActionTs || 0;
-    var freshActions = state.orders.filter(function(o){ return o.customerActionAt && o.customerActionAt > lastAction && o.serviceDate === todayStr(); });
+    var lastAction = state.ui.lastSeenCustomerActionTsByHub[hid];
+    var freshActions = currentHub().orders.filter(function(o){ return o.customerActionAt && o.customerActionAt > lastAction && o.serviceDate === todayStr(); });
 
     if(freshNew.length === 0 && freshActions.length === 0) return;
 
@@ -2477,8 +2539,8 @@
     freshActions.forEach(function(o){ events.push({ ts: o.customerActionAt, run: function(){ announceOrderAction(o); } }); });
     events.sort(function(a,b){ return a.ts - b.ts; }).forEach(function(e){ e.run(); });
 
-    state.ui.lastSeenOrderTs = nowMs();
-    state.ui.lastSeenCustomerActionTs = nowMs();
+    state.ui.lastSeenOrderTsByHub[hid] = nowMs();
+    state.ui.lastSeenCustomerActionTsByHub[hid] = nowMs();
     persist();
   }
   // Customer-side voice alert: reads out the same text as the WhatsApp status message
@@ -2488,7 +2550,7 @@
   // only real transitions speak. PENDING/CANCELLED are skipped, same as the "Notify" button.
   function checkCustomerOrderAndAnnounce(){
     if(state.ui.role === "owner" || !state.ui.custVoiceAlert || !state.ui.activeOrderId) return;
-    var o = state.orders.find(function(x){ return x.id === state.ui.activeOrderId; });
+    var o = currentHub().orders.find(function(x){ return x.id === state.ui.activeOrderId; });
     if(!o) return;
     if(state.ui.voiceLastOrderId !== o.id){
       state.ui.voiceLastOrderId = o.id; state.ui.voiceLastStatus = o.status; persist(); return;
@@ -2498,15 +2560,20 @@
       if(["ACCEPTED","PREPARING","READY","COMPLETED","REJECTED"].indexOf(o.status) !== -1) speak(statusUpdateText(o));
     }
   }
-  // Merge shared shop/order data written by another tab of the same browser, without touching
+  // Merge shared hub data written by another tab of the same browser, without touching
   // this tab's own session (role, unlock state, cart, in-progress form fields).
   function mergeIncomingSharedState(incoming){
     state.hub = incoming.hub || state.hub;
-    state.shop = Object.assign({}, DEFAULT_STATE.shop, incoming.shop || {});
-    state.menu = (incoming.menu && incoming.menu.length) ? incoming.menu : state.menu;
-    state.counter = incoming.counter || state.counter;
-    state.orders = incoming.orders || state.orders;
-    state.reviews = incoming.reviews || state.reviews;
+    if(!incoming.hubs) return;
+    Object.keys(incoming.hubs).forEach(function(hid){
+      var h = incoming.hubs[hid];
+      if(!state.hubs[hid]) state.hubs[hid] = freshHub({});
+      state.hubs[hid].shop = Object.assign({}, SHOP_DEFAULTS, h.shop || {});
+      state.hubs[hid].menu = (h.menu && h.menu.length) ? h.menu : state.hubs[hid].menu;
+      state.hubs[hid].counter = h.counter || state.hubs[hid].counter;
+      state.hubs[hid].orders = h.orders || state.hubs[hid].orders;
+      state.hubs[hid].reviews = h.reviews || state.hubs[hid].reviews;
+    });
   }
   window.addEventListener("storage", function(e){
     // Once Firebase is connected it's the single source of truth for shared data —
@@ -2527,40 +2594,60 @@
     if(document.visibilityState === "visible"){ checkNewOrdersAndAnnounce(); checkCustomerOrderAndAnnounce(); render(); }
   });
 
-  /* ---------- Cloud connect: subscribe to shared data, seed it if this is a brand-new DB ---------- */
-  function seedCloudIfEmpty(){
-    cloud.db.ref("shop").once("value").then(function(snap){
-      if(snap.exists()) return;
-      cloud.db.ref().update({
-        hub: DEFAULT_STATE.hub,
-        shop: DEFAULT_STATE.shop,
-        menu: DEFAULT_STATE.menu,
-        counter: DEFAULT_STATE.counter
-      });
+  /* ---------- Cloud connect: subscribe to shared data, seed/migrate as needed ----------
+     Every hub's shop/menu/counter/orders/reviews now lives under hubs/{hubId}/... instead
+     of one flat set of top-level keys. migrateToHubsTreeIfNeeded() runs once per page load:
+     brand-new database -> seed DEFAULT_STATE; a database still on the old single-hub shape
+     -> carry that shop/menu/orders/etc. into hubs/{tokenPrefix-lowercased} untouched, so the
+     one hub already live keeps every order and setting it already has. A database that
+     already has a hubs tree is left alone. The old top-level keys are never deleted by this
+     — they're just no longer read after this — so nothing is lost if this runs twice. */
+  function migrateToHubsTreeIfNeeded(){
+    cloud.db.ref().once("value").then(function(snap){
+      var val = snap.val() || {};
+      if(val.hubs && Object.keys(val.hubs).length) return; // already on the new shape
+      var update = {};
+      if(val.shop){
+        var slug = (val.shop.tokenPrefix || "hub").toLowerCase().replace(/[^a-z0-9]/g,"") || "hub";
+        update["hubs/" + slug] = {
+          shop: val.shop,
+          menu: val.menu || [],
+          counter: val.counter || { date: todayStr(), next: 1 },
+          orders: val.orders || {},
+          reviews: val.reviews || {}
+        };
+        if(!val.hub) update.hub = DEFAULT_STATE.hub;
+      } else {
+        update.hub = DEFAULT_STATE.hub;
+        update.hubs = DEFAULT_STATE.hubs;
+      }
+      cloud.db.ref().update(update).catch(function(){});
     }).catch(function(){});
   }
   function attachCloudListeners(){
     cloud.db.ref("hub").on("value", function(snap){ if(snap.exists()){ state.hub = snap.val(); render(); } });
-    cloud.db.ref("shop").on("value", function(snap){ if(snap.exists()){ state.shop = Object.assign({}, DEFAULT_STATE.shop, snap.val()); render(); } });
-    cloud.db.ref("menu").on("value", function(snap){
-      if(!snap.exists()) return;
-      state.menu = snap.val();
-      var droppedAny = false;
-      Object.keys(state.ui.cart).forEach(function(id){
-        if(!state.menu.find(function(m){ return m.id === id; })){ delete state.ui.cart[id]; droppedAny = true; }
+    cloud.db.ref("hubs").on("value", function(snap){
+      var val = snap.val();
+      if(!val) return;
+      Object.keys(val).forEach(function(hid){
+        var raw = val[hid] || {};
+        if(!state.hubs[hid]) state.hubs[hid] = freshHub({});
+        var h = state.hubs[hid];
+        h.shop = Object.assign({}, SHOP_DEFAULTS, raw.shop || {});
+        h.menu = raw.menu || [];
+        h.counter = raw.counter || { date: todayStr(), next: 1 };
+        h.orders = raw.orders ? Object.keys(raw.orders).map(function(k){ var o = raw.orders[k]; o.id = k; return o; }) : [];
+        h.reviews = raw.reviews ? Object.keys(raw.reviews).map(function(k){ var r = raw.reviews[k]; r.id = k; return r; }) : [];
       });
-      if(droppedAny){ persist(); toast("An item in your cart is no longer on the menu — it's been removed"); }
-      render();
-    });
-    cloud.db.ref("counter").on("value", function(snap){ if(snap.exists()){ state.counter = snap.val(); } });
-    cloud.db.ref("orders").on("value", function(snap){
-      var val = snap.val();
-      state.orders = val ? Object.keys(val).map(function(k){ var o = val[k]; o.id = k; return o; }) : [];
-      render();
-    });
-    cloud.db.ref("reviews").on("value", function(snap){
-      var val = snap.val();
-      state.reviews = val ? Object.keys(val).map(function(k){ var r = val[k]; r.id = k; return r; }) : [];
+      Object.keys(state.hubs).forEach(function(hid){ if(!val[hid]) delete state.hubs[hid]; });
+      var activeHub = state.hubs[state.ui.activeHubId];
+      if(activeHub){
+        var droppedAny = false;
+        Object.keys(state.ui.cart).forEach(function(id){
+          if(!activeHub.menu.find(function(m){ return m.id === id; })){ delete state.ui.cart[id]; droppedAny = true; }
+        });
+        if(droppedAny){ persist(); toast("An item in your cart is no longer on the menu — it's been removed"); }
+      }
       render();
     });
   }
@@ -2573,7 +2660,7 @@
       cloud.db.ref(".info/serverTimeOffset").on("value", function(snap){
         serverTimeOffsetMs = snap.val() || 0;
       });
-      seedCloudIfEmpty();
+      migrateToHubsTreeIfNeeded();
       attachCloudListeners();
       initPush();
     }catch(e){ cloud.enabled = false; cloud.db = null; }
@@ -2598,7 +2685,7 @@
       if(permission !== "granted"){ toast("Notification permission wasn't granted."); return; }
       push.messaging.getToken({ vapidKey: VAPID_PUBLIC_KEY, serviceWorkerRegistration: push.swReg }).then(function(token){
         if(!token){ toast("Couldn't get a notification token — try again."); return; }
-        if(cloud.enabled) cloud.db.ref("fcmTokens/" + token).set({ addedAt: nowMs() });
+        if(cloud.enabled) cloud.db.ref("hubs/" + currentHubId() + "/fcmTokens/" + token).set({ addedAt: nowMs() });
         state.ui.pushEnabledHere = true;
         persist(); render();
         toast("Notifications enabled on this device");
@@ -2608,14 +2695,22 @@
 
   function submitPin(){
     var entered = (state.ui.pinInput||"").trim();
-    var expected = (state.shop.staffPin||"1234").trim();
-    if(entered && entered === expected){
+    var matches = entered ? Object.keys(state.hubs).filter(function(hid){
+      return (state.hubs[hid].shop.staffPin||"1234").trim() === entered;
+    }) : [];
+    if(matches.length === 1){
+      state.ui.ownerHubId = matches[0];
       state.ui.ownerUnlocked = true;
       state.ui.role = "owner";
       state.ui.showPin = false;
       state.ui.pinInput = "";
       state.ui.pinError = "";
-      persist(); render(); toast("Owner dashboard unlocked");
+      persist(); render(); toast("Owner dashboard unlocked — " + state.hubs[matches[0]].shop.name);
+    } else if(matches.length > 1){
+      // Two hubs sharing a PIN isn't something the Excel template guarantees against —
+      // refuse rather than guess which one they meant to unlock.
+      state.ui.pinError = "That PIN matches more than one hub — ask the network admin to give each hub a unique PIN.";
+      persist(); render();
     } else {
       state.ui.pinError = "Incorrect PIN — try again.";
       persist(); render();
@@ -2649,7 +2744,13 @@
   document.getElementById("mode-pill-slot").addEventListener("click", function(e){
     var t = e.target;
     var r = attr(t,"data-staff-role");
-    if(r){ state.ui.role = r; persist(); render(); return; }
+    if(r){
+      state.ui.role = r;
+      // Previewing "as customer" should land the owner on their own hub by default,
+      // not whichever hub happened to load first, if they haven't browsed one yet.
+      if(r === "customer" && !state.ui.activeHubId) state.ui.activeHubId = state.ui.ownerHubId;
+      persist(); render(); return;
+    }
     if(t.id === "btn-lock-staff" || attr(t,"data-lock-staff")){
       state.ui.ownerUnlocked = false; state.ui.role = "customer"; state.ui.customerStep = "welcome";
       persist(); render(); toast("Owner view locked"); return;

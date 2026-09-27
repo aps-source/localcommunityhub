@@ -18,13 +18,16 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage(function(payload){
-  var title = (payload.notification && payload.notification.title) || "DSK Food Hub";
+  var title = (payload.notification && payload.notification.title) || "DSK Community Hub";
   var body = (payload.notification && payload.notification.body) || "";
+  // Tagged per hub so one device managing two hubs gets two stacked notifications
+  // instead of the second silently replacing the first.
+  var hubId = (payload.data && payload.data.hubId) || "hub";
   self.registration.showNotification(title, {
     body: body,
     icon: "icon-192.png",
     badge: "icon-192.png",
-    tag: "dsk-food-hub-order"
+    tag: "dsk-food-hub-order-" + hubId
   });
 });
 

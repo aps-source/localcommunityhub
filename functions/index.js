@@ -1,22 +1,25 @@
 /**
- * Sends a push notification to every device the owner has enabled notifications on,
- * whenever a new order arrives or an existing one is edited/cancelled by the customer.
- * Device tokens are registered by the client under /fcmTokens/{token} when the owner
- * taps "Enable notifications" in Manage hub — this function only ever reads that list
- * and sends to it, it never writes order data.
+ * Sends a push notification to every device that hub's owner has enabled notifications on,
+ * whenever a new order arrives at that hub or an existing one is edited/cancelled by the
+ * customer. Device tokens are registered by the client under
+ * /hubs/{hubId}/fcmTokens/{token} when that hub's owner taps "Enable notifications" in
+ * Manage hub — this function only ever reads that list and sends to it, it never writes
+ * order data. Each hub's tokens are scoped separately so one hub's staff never gets paged
+ * for another hub's orders.
  */
 const { onValueCreated, onValueUpdated } = require("firebase-functions/v2/database");
 const admin = require("firebase-admin");
 admin.initializeApp();
 
-async function sendToAllDevices(title, body) {
-  const tokensSnap = await admin.database().ref("fcmTokens").once("value");
+async function sendToHubDevices(hubId, title, body) {
+  const tokensSnap = await admin.database().ref("hubs/" + hubId + "/fcmTokens").once("value");
   if (!tokensSnap.exists()) return;
   const tokens = Object.keys(tokensSnap.val());
   if (tokens.length === 0) return;
 
   const resp = await admin.messaging().sendEachForMulticast({
     notification: { title, body },
+    data: { hubId },
     tokens,
   });
 
@@ -39,21 +42,22 @@ async function sendToAllDevices(title, body) {
     stale.forEach((t) => {
       updates[t] = null;
     });
-    await admin.database().ref("fcmTokens").update(updates);
+    await admin.database().ref("hubs/" + hubId + "/fcmTokens").update(updates);
   }
 }
 
-exports.notifyNewOrder = onValueCreated("/orders/{orderId}", async (event) => {
+exports.notifyNewOrder = onValueCreated("/hubs/{hubId}/orders/{orderId}", async (event) => {
   const order = event.data.val();
   if (!order || order.status !== "PENDING") return;
   const itemsText = (order.items || []).map((i) => i.qty + "x " + i.name).join(", ");
-  await sendToAllDevices(
+  await sendToHubDevices(
+    event.params.hubId,
     "New order — " + (order.tokenDisplay || ""),
     itemsText + (order.fulfilment === "DELIVERY" ? " · Delivery" : " · Pickup")
   );
 });
 
-exports.notifyOrderAction = onValueUpdated("/orders/{orderId}", async (event) => {
+exports.notifyOrderAction = onValueUpdated("/hubs/{hubId}/orders/{orderId}", async (event) => {
   const before = event.data.before.val() || {};
   const after = event.data.after.val() || {};
   if (!after.customerActionAt || after.customerActionAt === before.customerActionAt) return;
@@ -63,5 +67,5 @@ exports.notifyOrderAction = onValueUpdated("/orders/{orderId}", async (event) =>
   const body = cancelled
     ? "Cancelled by the customer."
     : (after.items || []).map((i) => i.qty + "x " + i.name).join(", ");
-  await sendToAllDevices(title, body);
+  await sendToHubDevices(event.params.hubId, title, body);
 });
