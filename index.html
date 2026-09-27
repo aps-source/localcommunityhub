@@ -578,6 +578,7 @@
       addressLocal: "पत्ता - सर्व्हे नं. १२६, शॉप नं. एच-१७, भास्करा डि.एस.के. विश्व, पुणे-४११०४१",
       mapsUrl: "",
       tokenPrefix: "SSB",
+      visibleOnMainPage: true,
       isOpenManual: true,
       closureReason: "",
       holidayFrom: "",
@@ -1189,21 +1190,26 @@
     var ratingSummary = shopRatingSummary();
     var ratingBadgeHtml = ratingSummary ? ('<span class="rating-badge">⭐ ' + ratingSummary.avg.toFixed(1) + ' (' + ratingSummary.count + ')</span>') : '';
 
+    var hubVisible = state.shop.visibleOnMainPage !== false;
     var html = '<button class="crumb" id="btn-to-welcome">← DSK Food Hub</button>';
     html += '<h2 class="display" style="font-size:22px;margin-bottom:2px">Choose a food hub</h2>';
     html += '<p class="sub" style="margin-bottom:6px">One hub live so far — more will appear here as they join.</p>';
     html += '<div class="hub-grid">';
-    html += '<button class="hub-tile" data-open-hub="1">' +
-      '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' + badgeForStatus(cs) + ratingBadgeHtml + '</div>' +
-      '<h3>' + esc(state.shop.name) + '</h3>' +
-      '<p class="local">' + esc(state.shop.local) + '</p>' +
-      (state.shop.address ? ('<div class="hub-tile-address">📍 ' + esc(state.shop.address) + '</div>') : '') +
-      (state.shop.addressLocal ? ('<div class="hub-tile-address-local">' + esc(state.shop.addressLocal) + '</div>') : '') +
-      (timingsBits.length ? ('<div class="hub-tile-hours">' + timingsBits.join(" · ") + '</div>') : '') +
-      '<div class="hub-tile-meta">' + metaBits.join(" · ") + '</div>' +
-      (special ? ('<div class="hub-tile-special">★ Today: ' + esc(special.name) + ' ' + money(special.price) + '</div>') : '') +
-      '<div class="hub-tile-cta">View menu →</div>' +
-      '</button>';
+    if(hubVisible){
+      html += '<button class="hub-tile" data-open-hub="1">' +
+        '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' + badgeForStatus(cs) + ratingBadgeHtml + '</div>' +
+        '<h3>' + esc(state.shop.name) + '</h3>' +
+        '<p class="local">' + esc(state.shop.local) + '</p>' +
+        (state.shop.address ? ('<div class="hub-tile-address">📍 ' + esc(state.shop.address) + '</div>') : '') +
+        (state.shop.addressLocal ? ('<div class="hub-tile-address-local">' + esc(state.shop.addressLocal) + '</div>') : '') +
+        (timingsBits.length ? ('<div class="hub-tile-hours">' + timingsBits.join(" · ") + '</div>') : '') +
+        '<div class="hub-tile-meta">' + metaBits.join(" · ") + '</div>' +
+        (special ? ('<div class="hub-tile-special">★ Today: ' + esc(special.name) + ' ' + money(special.price) + '</div>') : '') +
+        '<div class="hub-tile-cta">View menu →</div>' +
+        '</button>';
+    } else {
+      html += '<div class="empty-note">No hubs available right now — check back later.</div>';
+    }
     html += '<div class="hub-tile-ghost">More food hubs will show up here as your community adds them</div>';
     html += '</div>';
     return html;
@@ -1625,6 +1631,10 @@
     html += '<div class="card accent-owner">';
     html += '<h2>Today\'s status</h2>';
     html += '<p class="sub">For an unplanned closure right now — everything below this handles the regular schedule.</p>';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--line)">';
+    html += '<div><strong>' + (state.shop.visibleOnMainPage!==false ? "Shown on main page" : "Hidden from main page") + '</strong><div class="hint">Turn off to disappear from the hub list for the day, e.g. shop shut, no orders at all.</div></div>';
+    html += '<label class="switch"><input type="checkbox" id="tg-visible" ' + (state.shop.visibleOnMainPage!==false?'checked':'') + '><span class="track"></span></label>';
+    html += '</div>';
     html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">';
     html += '<div><strong>' + (state.shop.isOpenManual ? "Open for orders" : "Closed") + '</strong></div>';
     html += '<label class="switch"><input type="checkbox" id="tg-open" ' + (state.shop.isOpenManual?'checked':'') + '><span class="track"></span></label>';
@@ -2048,6 +2058,7 @@
 
   function onAppChange(e){
     var t = e.target;
+    if(t.id === "tg-visible"){ updateShop({ visibleOnMainPage: t.checked }); toast(t.checked?"Hub shown on main page":"Hub hidden from main page"); return; }
     if(t.id === "tg-open"){ updateShop({ isOpenManual: t.checked }); toast(t.checked?"Hub marked open":"Hub marked closed"); return; }
     if(t.id === "tg-delivery"){
       if(!t.checked && state.ui.fulfilment==="DELIVERY") state.ui.fulfilment="PICKUP";
