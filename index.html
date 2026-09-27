@@ -2693,6 +2693,16 @@
     return out;
   }
   function migrateToHubsTreeIfNeeded(){
+    // A "hub" record from before this session's rebrand may still hold the old literal
+    // name. This runs every load, independent of the hubs-migration guard below (which
+    // returns early once hubs/ exists) — otherwise this fix would never get a chance to
+    // run on a database that already migrated before the rebrand shipped. Migration
+    // otherwise never touches "hub" so a network operator's own custom name is never
+    // clobbered — this one exact stale value is the only thing safe to correct here.
+    cloud.db.ref("hub").once("value").then(function(hubSnap){
+      var hub = hubSnap.val();
+      if(hub && hub.name === "DSK Food Hub") cloud.db.ref("hub").update(DEFAULT_STATE.hub).catch(function(){});
+    }).catch(function(){});
     // Reading the database root (ref().once("value")) needs a ".read" rule at "/" itself —
     // this project's rules only grant read on named children, so a root read is always
     // denied. Fetch each old top-level path individually instead; each one is covered.
